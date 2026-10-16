@@ -1,25 +1,114 @@
+
 @import "tailwindcss";
 
 @theme {
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
-  --font-display: 'Space Grotesk', sans-serif;
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --color-hud-bg: #0b0e09;
-  --color-hud-card: #131710;
-  --color-hud-card-hover: #191f15;
-  --color-hud-border: #222a1b;
-  --color-hud-border-focus: #3a472e;
-  --color-hud-accent: #b8c944;
-  --color-hud-accent-muted: #1c2413;
-  --color-hud-text: #e3e8dc;
-  --color-hud-muted: #7a8870;
-  --color-hud-dim: #4d5746;
+  /* App surfaces */
+  --color-app: #101419;
+  --color-panel: #191f26;
+  --color-panel-hover: #202730;
+  --color-elevated: #242c35;
+  --color-elevated-hover: #323d4a;
+  --color-border: #343e49;
+
+  /* Brand accent */
+  --color-accent: #f0b44d;
+  --color-accent-hover: #ffc96b;
+  --color-accent-subtle: #2b2416;
+  --color-accent-ink: #17130b;
+
+  /* Text */
+  --color-text-main: #e8edf2;
+  --color-text-muted: #a3afbc;
+  --color-text-dim: #8b98a8;
+
+  /* Semantic states */
+  --color-status-success: #72d6a0;
+  --color-status-warning: #ffd08a;
+  --color-status-error: #ff8f98;
+  --color-status-info: #9cc5ff;
 }
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html {
+    min-width: 320px;
+    min-height: 100%;
+    background: var(--color-app);
+  }
+
   body {
-    background-color: var(--color-hud-bg);
-    color: var(--color-hud-text);
-    font-family: var(--font-mono);
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-app);
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+}
+
+/* Apply to prices, machine codes, IDs and financial figures. */
+.font-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal navigation: hide scrollbar without disabling scrolling. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

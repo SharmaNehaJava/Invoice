@@ -1,102 +1,250 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export default function Header({ user, onSignOut, onSignIn }) {
+const BRANCHES = [
+  { id: "05", name: "05 · Nanaimo, BC" },
+  { id: "02", name: "02 · Victoria, BC" },
+  { id: "01", name: "01 · Vancouver, BC" },
+];
+
+const NAV_ITEMS = [
+  "CRM SHEET",
+  "CALENDAR",
+  "JAKE INBOX",
+  "COPY FEEDBACK LINK",
+  "FEEDBACK REPLIES",
+  "ASK CLAUDE",
+];
+
+function getFormattedTime() {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(new Date())
+    .toUpperCase();
+}
+
+export default function Header({
+  user,
+  onSignOut,
+  onSignIn,
+  onNavigate,
+}) {
   const [currentTime, setCurrentTime] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState("05 · Nanaimo, BC");
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isBranchOpen, setIsBranchOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState(BRANCHES[0].name);
+  const [copyNotice, setCopyNotice] = useState("");
 
-  // Keep live time updated
+  const branchRef = useRef(null);
+  const profileRef = useRef(null);
+
+  // Close menus on outside click or escape key
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const options = {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      };
-      setCurrentTime(now.toLocaleString("en-US", options).toUpperCase());
+    function handlePointerDown(event) {
+      if (branchRef.current && !branchRef.current.contains(event.target)) {
+        setIsBranchOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsBranchOpen(false);
+        setIsProfileOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
   }, []);
 
-  const navPills = [
-    "CRM SHEET",
-    "CALENDAR",
-    "JAKE INBOX",
-    "COPY FEEDBACK LINK",
-    "FEEDBACK REPLIES",
-    "ASK CLAUDE",
-  ];
+  // Time update (every minute)
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(getFormattedTime());
+    updateTime();
+    const timer = window.setInterval(updateTime, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  function toggleBranchMenu() {
+    setIsBranchOpen((open) => !open);
+    setIsProfileOpen(false);
+  }
+
+  function toggleProfileMenu() {
+    setIsProfileOpen((open) => !open);
+    setIsBranchOpen(false);
+  }
+
+  function handleNavigation(item) {
+    if (item === "COPY FEEDBACK LINK") {
+      const link = "https://ccequipment.ca/feedback/demo-session-current";
+      navigator.clipboard.writeText(link);
+      setCopyNotice("Demo Feedback Link Copied!");
+      setTimeout(() => setCopyNotice(""), 2200);
+      return;
+    }
+
+    // Map each button to its drawer
+    const mapping = {
+      "CRM SHEET": "crm",
+      "CALENDAR": "calendar",
+      "JAKE INBOX": "inbox",
+      "FEEDBACK REPLIES": "replies",
+      "ASK CLAUDE": "ai",
+    };
+
+    if (mapping[item]) {
+      onNavigate?.(mapping[item]);
+    }
+  }
+
+  const controlClass =
+    "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg " +
+    "border border-elevated bg-panel px-3 py-2 text-xs sm:text-sm text-text-muted " +
+    "transition-colors hover:border-accent/60 hover:bg-panel-hover " +
+    "hover:text-text-main focus-visible:outline-2 " +
+    "focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer";
 
   return (
-    <header className="border-b border-[#23291d] bg-[#0c0f0a] px-4 py-3 mb-4 select-none font-mono">
-      {/* ROW 1: Branding, Branch, Clock & User */}
-      <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#1b2216]">
-        {/* Left: CC Logo + Equipment AI + Branch Dropdown */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded border border-[#b8c944] bg-[#161f10] flex items-center justify-center text-[#b8c944] font-black text-sm">
-            CC
-          </div>
-          <span className="font-bold tracking-widest text-[#e2e8da] text-sm">
-            Equipment AI
-          </span>
-
-          {/* Clean Branch Dropdown */}
-          <div className="ml-2 flex items-center bg-[#121610] border border-[#23291d] px-2.5 py-1 rounded text-xs text-[#86957c]">
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="bg-transparent text-[#cbd5c0] focus:outline-none cursor-pointer text-xs"
+    <header className="relative z-30 mb-4 border-b border-elevated bg-app px-3 py-3 sm:px-5">
+      {/* Top row: Brand, Branch selector, Clock and Account */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-elevated/60">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+          {/* Brand */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <div
+              aria-hidden="true"
+              className="flex size-9 items-center justify-center rounded-lg border border-accent/50 bg-accent-subtle font-mono font-bold text-accent shadow-[0_0_10px_rgba(240,180,77,0.15)]"
             >
-              <option value="05 · Nanaimo, BC" className="bg-[#121610]">05 · Nanaimo, BC</option>
-              <option value="02 · Victoria, BC" className="bg-[#121610]">02 · Victoria, BC</option>
-              <option value="01 · Vancouver, BC" className="bg-[#121610]">01 · Vancouver, BC</option>
-            </select>
+              CC
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-text-main sm:text-base font-sans">
+              Equipment AI
+            </span>
+          </div>
+
+          {/* Branch selector */}
+          <div ref={branchRef} className="relative">
+            <button
+              type="button"
+              className={`${controlClass} max-w-full font-mono`}
+              onClick={toggleBranchMenu}
+              aria-expanded={isBranchOpen}
+              aria-haspopup="menu"
+              aria-controls="branch-menu"
+            >
+              <span className="max-w-[145px] truncate sm:max-w-none">
+                {selectedBranch}
+              </span>
+              <span aria-hidden="true" className="text-xs text-text-dim">
+                {isBranchOpen ? "▴" : "▾"}
+              </span>
+            </button>
+
+            {isBranchOpen && (
+              <div
+                id="branch-menu"
+                role="menu"
+                aria-label="Select branch"
+                className="absolute left-0 top-full mt-2 w-56 max-w-[calc(100vw-24px)] rounded-xl border border-elevated bg-panel p-1.5 shadow-2xl z-50 font-mono"
+              >
+                {BRANCHES.map((branch) => {
+                  const isSelected = selectedBranch === branch.name;
+                  return (
+                    <button
+                      key={branch.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={isSelected}
+                      className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-accent-subtle font-medium text-accent"
+                          : "text-text-muted hover:bg-panel-hover hover:text-text-main"
+                      }`}
+                      onClick={() => {
+                        setSelectedBranch(branch.name);
+                        setIsBranchOpen(false);
+                      }}
+                    >
+                      <span>{branch.name}</span>
+                      {isSelected && <span aria-hidden="true">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right: Live Time + User Avatar / Sign In */}
-        <div className="flex items-center gap-4 text-xs">
-          <div className="text-[#64725c] tracking-wider">
-            {currentTime || "LOADING..."}
-          </div>
+        {/* Right side: Toast Notice, Clock and Account */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
+          {copyNotice && (
+            <span className="text-xs text-status-success font-semibold bg-panel border border-status-success/30 px-2.5 py-1 rounded">
+              {copyNotice}
+            </span>
+          )}
 
-          {/* User Auth Section */}
+          <time
+            className="hidden whitespace-nowrap font-mono text-xs text-text-dim md:block"
+            aria-label="Current local date and time"
+          >
+            {currentTime}
+          </time>
+
           {user ? (
-            <div className="relative">
-              {/* Circle with first letter */}
+            <div ref={profileRef} className="relative">
               <button
                 type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-8 h-8 rounded-full border border-[#b8c944] bg-[#1a2312] text-[#b8c944] font-bold flex items-center justify-center text-xs hover:bg-[#243019] transition"
+                onClick={toggleProfileMenu}
+                className="flex size-10 items-center justify-center rounded-full border border-accent/50 bg-accent-subtle font-mono font-semibold text-accent transition-colors hover:bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer"
+                aria-label={`Account menu for ${user.name}`}
+                aria-expanded={isProfileOpen}
+                aria-haspopup="menu"
+                aria-controls="profile-menu"
               >
-                {user.name.charAt(0).toUpperCase()}
+                {user.name?.charAt(0)?.toUpperCase() ?? "U"}
               </button>
 
-              {/* Minimal Dropdown: Name, Email & Sign Out */}
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-[#121610] border border-[#283221] rounded shadow-xl py-2 z-50">
-                  <div className="px-3 py-1.5 border-b border-[#1b2216]">
-                    <p className="text-[#e2e8da] font-semibold text-xs">{user.name}</p>
-                    <p className="text-[10px] text-[#55624e] truncate">{user.email}</p>
+              {isProfileOpen && (
+                <div
+                  id="profile-menu"
+                  role="menu"
+                  aria-label="Account menu"
+                  className="absolute right-0 top-full mt-2 w-60 max-w-[calc(100vw-24px)] rounded-xl border border-elevated bg-panel p-2 shadow-2xl z-50 font-sans"
+                >
+                  <div className="border-b border-elevated px-3 py-2">
+                    <p className="truncate text-sm font-semibold text-text-main">
+                      {user.name}
+                    </p>
+                    <p className="truncate text-xs text-text-muted font-mono">
+                      {user.email}
+                    </p>
                   </div>
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        onSignOut();
-                      }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-[#b04a4a] hover:bg-[#1f1515] transition"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="mt-1 flex min-h-10 w-full items-center rounded-lg px-3 py-2 text-left text-sm text-status-error transition-colors hover:bg-elevated cursor-pointer"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      onSignOut?.();
+                    }}
+                  >
+                    Sign out
+                  </button>
                 </div>
               )}
             </div>
@@ -104,33 +252,37 @@ export default function Header({ user, onSignOut, onSignIn }) {
             <button
               type="button"
               onClick={onSignIn}
-              className="px-3 py-1 rounded border border-[#b8c944] bg-[#1a2312] text-[#b8c944] text-xs font-bold hover:bg-[#253218] transition"
+              className="min-h-10 rounded-lg border border-accent/50 bg-accent px-4 py-2 text-sm font-semibold text-app transition-colors hover:bg-accent-hover cursor-pointer"
             >
-              Sign In
+              Sign in
             </button>
           )}
         </div>
       </div>
 
-      {/* ROW 2: Separate Line for Navigation Pills */}
-      <div className="flex flex-wrap gap-2 pt-3">
-        {navPills.map((pill) => {
-          const isAskClaude = pill === "ASK CLAUDE";
+      {/* Navigation Pills: Mobile scrollable */}
+      <nav
+        aria-label="Main navigation"
+        className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pt-2.5 pb-0.5 whitespace-nowrap"
+      >
+        {NAV_ITEMS.map((item) => {
+          const isHighlighted = item === "ASK CLAUDE";
           return (
             <button
-              key={pill}
+              key={item}
               type="button"
-              className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${
-                isAskClaude
-                  ? "border-[#b8c944] text-[#b8c944] bg-[#1a2213] hover:bg-[#232e18]"
-                  : "border-[#23291d] bg-[#121610] text-[#788570] hover:text-[#b8c944] hover:border-[#b8c944]"
+              onClick={() => handleNavigation(item)}
+              className={`min-h-9 shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-colors cursor-pointer ${
+                isHighlighted
+                  ? "border-accent/60 bg-accent-subtle text-accent hover:bg-elevated hover:border-accent"
+                  : "border-elevated bg-panel text-text-muted hover:border-accent/50 hover:bg-panel-hover hover:text-text-main"
               }`}
             >
-              {pill}
+              {item}
             </button>
           );
         })}
-      </div>
+      </nav>
     </header>
   );
 }

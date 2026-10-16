@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CATALOG, YARD_INVENTORY } from "../data/mockData";
 
-export default function QuoteDesk({ onQuoteChange }) {
+export default function QuoteDesk({ onSendToSheldon, loadedQuote }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItem, setSelectedItem] = useState(CATALOG[1]); // Default to DW50
   const [markupPercent, setMarkupPercent] = useState(20);
   const [freight, setFreight] = useState(2200);
   const [copiedNotice, setCopiedNotice] = useState("");
 
+  // Populate desk when user loads a quote from CRM sheet
+  useEffect(() => {
+    if (loadedQuote) {
+      const match = CATALOG.find((c) =>
+        loadedQuote.machine?.toLowerCase().includes(c.name.toLowerCase())
+      );
+      if (match) {
+        setSelectedItem(match);
+        setFreight(match.defaultFreight);
+      }
+    }
+  }, [loadedQuote]);
+
   // Search filtering
   const searchResults = searchTerm.trim()
-    ? CATALOG.filter((item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    ? CATALOG.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
 
@@ -22,9 +36,13 @@ export default function QuoteDesk({ onQuoteChange }) {
     setSearchTerm("");
   };
 
-  // Pricing calculations
-  const dealerCost = selectedItem ? selectedItem.listPrice * (1 - selectedItem.dealerDiscount) : 0;
-  const totalBaseCost = selectedItem ? dealerCost + selectedItem.defaultPdi + Number(freight) : 0;
+  // Pricing math
+  const dealerCost = selectedItem
+    ? selectedItem.listPrice * (1 - selectedItem.dealerDiscount)
+    : 0;
+  const totalBaseCost = selectedItem
+    ? dealerCost + selectedItem.defaultPdi + Number(freight)
+    : 0;
   const sellPrice = Math.round(totalBaseCost * (1 + markupPercent / 100));
 
   // Finance calculations (48-month loan estimate)
@@ -32,94 +50,122 @@ export default function QuoteDesk({ onQuoteChange }) {
   const dailyRate = (monthlyPayment / 30).toFixed(2);
   const hourlyRate = (dailyRate / 8).toFixed(2);
 
-  // Filter yard stock that matches current model
+  // Filter physical yard inventory matching current model
   const matchingStock = selectedItem
-    ? YARD_INVENTORY.filter((stock) => stock.model.toUpperCase() === selectedItem.name.toUpperCase())
+    ? YARD_INVENTORY.filter(
+        (stock) => stock.model.toUpperCase() === selectedItem.name.toUpperCase()
+      )
     : [];
 
-  // Copy helpers
+  // Clipboard copy for customer SMS
   const copyCustomerQuote = () => {
-    const text = `Quote for ${selectedItem.description}:\nPrice: $${sellPrice.toLocaleString()}\nEst. Payment: $${dailyRate}/day ($${hourlyRate}/hr) on finance terms.`;
+    const text = `Quote for ${selectedItem.description}:\nSell Price: $${sellPrice.toLocaleString()}\nEst. Payment: $${dailyRate}/day ($${hourlyRate}/hr) on finance terms.`;
     navigator.clipboard.writeText(text);
     setCopiedNotice("Copied SMS Quote!");
     setTimeout(() => setCopiedNotice(""), 2000);
   };
 
   return (
-    <section className="space-y-4 font-mono text-xs">
-      {/* 04 QUOTE DESK */}
-      <div className="border border-[#23291d] bg-[#121610] p-4 rounded">
+    <section className="space-y-4">
+      {/* 04 QUOTE DESK CARD */}
+      <div className="border border-elevated bg-panel p-4 rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-3">
-          <span className="text-[#b8c944] font-bold">04 QUOTE DESK</span>
-          <span className="text-[#55624e]">{CATALOG.length} LINES</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-accent">04</span>
+            <span className="font-sans font-bold text-text-main tracking-wide">
+              QUOTE DESK
+            </span>
+          </div>
+          <span className="font-mono text-xs text-text-dim">
+            {CATALOG.length} LINES
+          </span>
         </div>
 
         {/* Search Field */}
         <div className="relative mb-3">
           <input
             type="text"
-            placeholder="Search catalog — model, description (e.g. DW50, DW30)..."
+            placeholder="Search catalog — model, description (e.g. DW50, DW30, Avant)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#0d100c] border border-[#23291d] rounded px-3 py-2 text-[#d8dfcf] placeholder-[#4e5b47] focus:outline-none focus:border-[#b8c944]"
+            className="w-full bg-app border border-elevated rounded-lg px-3.5 py-2.5 text-sm text-text-main placeholder-text-dim focus:outline-none focus:border-accent transition font-sans"
           />
           {searchResults.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-[#141911] border border-[#2b3523] rounded shadow-lg max-h-48 overflow-y-auto">
+            <div className="absolute z-20 w-full mt-1.5 bg-panel border border-elevated rounded-lg shadow-2xl max-h-56 overflow-y-auto">
               {searchResults.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => handleSelect(item)}
-                  className="p-2 cursor-pointer hover:bg-[#1f2719] flex justify-between text-[#cbd5c0]"
+                  className="p-3 cursor-pointer hover:bg-elevated flex justify-between items-center border-b border-elevated/40 last:border-b-0 transition"
                 >
-                  <span>{item.description}</span>
-                  <span className="text-[#b8c944]">${item.listPrice.toLocaleString()}</span>
+                  <span className="text-xs text-text-main font-sans">{item.description}</span>
+                  <span className="text-xs font-mono font-bold text-accent">
+                    ${item.listPrice.toLocaleString()}
+                  </span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Selected Line Item Details */}
+        {/* Selected Equipment Line Item */}
         {selectedItem && (
-          <div className="bg-[#0e110d] border border-[#1f2619] p-3 rounded space-y-3 mb-4">
-            <div className="flex justify-between border-b border-[#1b2216] pb-2 text-[#b8c944] font-bold">
-              <span>{selectedItem.description}</span>
-              <span>List: ${selectedItem.listPrice.toLocaleString()}</span>
+          <div className="bg-app border border-elevated/80 p-3.5 rounded-lg space-y-3 mb-4">
+            <div className="flex justify-between items-start border-b border-elevated pb-2.5">
+              <span className="font-sans text-xs sm:text-sm font-semibold text-text-main">
+                {selectedItem.description}
+              </span>
+              <span className="font-mono text-xs sm:text-sm text-text-muted font-bold whitespace-nowrap ml-2">
+                List: ${selectedItem.listPrice.toLocaleString()}
+              </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-[#86957c]">
+            {/* Cost, PDI, Freight Grid */}
+            <div className="grid grid-cols-3 gap-2.5 text-text-muted">
               <div>
-                <span className="text-[#4e5b47] block text-[10px]">DEALER COST</span>
-                ${Math.round(dealerCost).toLocaleString()}
+                <span className="font-sans text-[11px] text-text-dim block uppercase">
+                  Dealer Cost
+                </span>
+                <span className="font-mono text-xs sm:text-sm text-text-main font-semibold">
+                  ${Math.round(dealerCost).toLocaleString()}
+                </span>
               </div>
               <div>
-                <span className="text-[#4e5b47] block text-[10px]">PDI</span>
-                ${selectedItem.defaultPdi}
+                <span className="font-sans text-[11px] text-text-dim block uppercase">
+                  PDI
+                </span>
+                <span className="font-mono text-xs sm:text-sm text-text-main font-semibold">
+                  ${selectedItem.defaultPdi}
+                </span>
               </div>
               <div>
-                <label className="text-[#4e5b47] block text-[10px]">FACTORY FREIGHT</label>
+                <label className="font-sans text-[11px] text-text-dim block uppercase">
+                  Freight
+                </label>
                 <input
                   type="number"
                   value={freight}
                   onChange={(e) => setFreight(Number(e.target.value))}
-                  className="w-full bg-[#090b08] border border-[#202719] px-2 py-0.5 rounded text-[#d8dfcf]"
+                  className="w-full bg-panel border border-elevated px-2 py-0.5 rounded text-xs sm:text-sm text-text-main font-mono focus:border-accent focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Markup Selector */}
-            <div className="pt-2 border-t border-[#1b2216] flex items-center justify-between">
-              <span className="text-[#4e5b47]">MARKUP: {markupPercent}%</span>
-              <div className="flex gap-1">
+            {/* Markup Buttons */}
+            <div className="pt-2 border-t border-elevated flex flex-wrap items-center justify-between gap-2">
+              <span className="font-sans text-xs text-text-dim uppercase font-semibold">
+                Markup: <span className="font-mono text-text-main">{markupPercent}%</span>
+              </span>
+              <div className="flex gap-1.5 font-mono">
                 {[15, 17, 20, 22, 25].map((rate) => (
                   <button
                     key={rate}
                     type="button"
                     onClick={() => setMarkupPercent(rate)}
-                    className={`px-2 py-0.5 rounded text-[10px] border ${
+                    className={`px-2.5 py-1 rounded text-xs border transition cursor-pointer ${
                       markupPercent === rate
-                        ? "bg-[#b8c944] text-black font-bold border-[#b8c944]"
-                        : "border-[#2b3523] text-[#788570] hover:text-[#b8c944]"
+                        ? "bg-accent text-app font-bold border-accent"
+                        : "border-elevated text-text-muted hover:border-accent hover:text-accent bg-panel"
                     }`}
                   >
                     {rate}%
@@ -128,56 +174,91 @@ export default function QuoteDesk({ onQuoteChange }) {
               </div>
             </div>
 
-            {/* Calculated Results */}
-            <div className="pt-2 flex justify-between items-end border-t border-[#1b2216]">
+            {/* Sell Price & Finance Breakdown */}
+            <div className="pt-2.5 flex justify-between items-end border-t border-elevated">
               <div>
-                <span className="text-[10px] text-[#4e5b47] block">SELL PRICE</span>
-                <span className="text-base font-bold text-[#b8c944]">
+                <span className="font-sans text-[11px] text-text-dim uppercase block">
+                  Sell Price
+                </span>
+                <span className="font-mono text-xl sm:text-2xl font-bold text-accent">
                   ${sellPrice.toLocaleString()}
                 </span>
               </div>
-              <div className="text-right text-[11px] text-[#86957c]">
+              <div className="text-right font-mono text-xs text-text-muted">
                 <div>${dailyRate} / day</div>
-                <div className="text-[#b8c944] font-semibold">${hourlyRate} / hr</div>
+                <div className="text-accent font-semibold">${hourlyRate} / hr</div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 items-center">
+        {/* Action Buttons: Customer Quote vs Sheldon Review */}
+        <div className="flex flex-col sm:flex-row gap-2.5 items-center">
           <button
             type="button"
             onClick={copyCustomerQuote}
-            className="flex-1 py-1.5 rounded bg-[#b8c944] text-black font-bold text-xs hover:bg-[#a6b63a] transition"
+            className="w-full sm:flex-1 py-2.5 rounded-lg bg-accent text-app font-sans font-bold text-xs uppercase tracking-wide hover:bg-accent-hover transition cursor-pointer"
           >
-            QUOTE FOR CUSTOMER
+            Quote for Customer
           </button>
-          {copiedNotice && <span className="text-[11px] text-[#b8c944]">{copiedNotice}</span>}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onSendToSheldon && selectedItem) {
+                onSendToSheldon({
+                  customer: "RG Excavating",
+                  machineName: selectedItem.description,
+                  markup: markupPercent,
+                  sellPrice: sellPrice,
+                });
+              }
+            }}
+            className="w-full sm:flex-1 py-2.5 rounded-lg border border-accent/60 text-accent font-sans font-bold text-xs uppercase tracking-wide hover:bg-accent-subtle transition cursor-pointer"
+          >
+            Cost Sheet for Sheldon
+          </button>
         </div>
 
-        {/* Physical Stock (On the Ground) */}
-        <div className="mt-4 pt-3 border-t border-[#1b2216]">
-          <span className="text-[10px] tracking-wider text-[#4e5b47] block mb-2 font-bold">
-            ON THE GROUND — MATCHES THIS QUOTE
+        {copiedNotice && (
+          <p className="text-center text-xs font-semibold text-status-success mt-2">
+            {copiedNotice}
+          </p>
+        )}
+
+        {/* Yard Inventory (On the Ground) */}
+        <div className="mt-5 pt-3.5 border-t border-elevated">
+          <span className="font-sans text-[11px] font-bold tracking-wider text-text-dim block mb-2 uppercase">
+            On the Ground — Matches This Quote
           </span>
           {matchingStock.length > 0 ? (
             <div className="space-y-2">
               {matchingStock.map((stock) => (
-                <div key={stock.id} className="border border-[#1f2719] bg-[#0c0f0a] p-2 rounded">
-                  <div className="flex justify-between items-center text-[#b8c944]">
-                    <span className="font-bold">{stock.year} {stock.model}</span>
-                    <span className="text-[10px] bg-[#1a2314] px-1 py-0.5 rounded border border-[#2b3523]">
+                <div
+                  key={stock.id}
+                  className="border border-elevated bg-app p-2.5 rounded-lg"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-mono text-xs font-bold text-accent">
+                      {stock.year} {stock.model}
+                    </span>
+                    <span className="font-mono text-[10px] bg-accent-subtle text-accent border border-accent/30 px-1.5 py-0.5 rounded font-semibold">
                       {stock.status}
                     </span>
                   </div>
-                  <div className="text-[11px] text-[#788570] mt-1">{stock.description}</div>
-                  <div className="text-[10px] text-[#4e5b47]">{stock.serialNumber} · {stock.branch}</div>
+                  <div className="font-sans text-xs text-text-muted mt-1">
+                    {stock.description}
+                  </div>
+                  <div className="font-mono text-[10px] text-text-dim mt-0.5">
+                    {stock.serialNumber} · {stock.branch}
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-[#55624e] italic">No physical units matching in dealership yard.</p>
+            <p className="font-sans text-xs text-text-dim italic">
+              No physical units currently matching in yard.
+            </p>
           )}
         </div>
       </div>
