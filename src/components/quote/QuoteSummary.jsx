@@ -1,4 +1,4 @@
-import { Copy, Mail, MessageCircle, Printer, Save, Share2 } from "lucide-react";
+import { Copy, FileDown, Mail, MessageCircle, Save, Share2 } from "lucide-react";
 import { Button, Card, NumberInput } from "../ui";
 import { formatMoney, formatPercent, formatRate, toNumber } from "../../lib/pricing";
 
@@ -28,7 +28,7 @@ export default function QuoteSummary({
   onCommissionChange,
   hasOtherRates,
   whatsappHref,
-  onPrint,
+  onDownloadPdf,
 }) {
   const multiLine = draft.lines.length > 1;
 
@@ -143,9 +143,9 @@ export default function QuoteSummary({
             <MessageCircle size={16} aria-hidden="true" />
             WhatsApp
           </a>
-          <Button onClick={onPrint}>
-            <Printer size={16} aria-hidden="true" />
-            Print / PDF
+          <Button onClick={onDownloadPdf}>
+            <FileDown size={16} aria-hidden="true" />
+            Download PDF
           </Button>
         </div>
         <Button variant="ghost" size="lg" className="w-full" onClick={onSave}>

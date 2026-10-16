@@ -7,7 +7,6 @@ import MarginControl from "../components/quote/MarginControl";
 import FinanceSection from "../components/quote/FinanceSection";
 import QuoteSummary from "../components/quote/QuoteSummary";
 import OwnVsRent from "../components/quote/OwnVsRent";
-import PrintableQuote from "../components/quote/PrintableQuote";
 import CustomerForm from "../components/CustomerForm";
 import Dialog from "../components/Dialog";
 import { CUSTOM_PROGRAM_ID, FINANCE_PROGRAMS, YARD_STOCK } from "../data/catalogData";
@@ -31,7 +30,7 @@ export default function QuotePage({
   notify,
   commissionPct,
   onCommissionChange,
-  branch,
+  settings,
   onAddCustomer,
   onUpdateCustomer,
 }) {
@@ -111,6 +110,7 @@ export default function QuotePage({
   const save = (status) => {
     const id = onSaveQuote(draft, { status, machine: quoteLabel(draft.lines), sellPrice: pricing.sellPrice });
     update({ quoteId: id });
+    return id;
   };
 
   const handleCopyCustomer = async () => {
@@ -138,8 +138,25 @@ export default function QuotePage({
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(customerQuoteText({ ...textArgs, repName }))}`;
 
-  const handlePrint = () => {
-    if (requireQuote()) window.print();
+  // Saving first gives the PDF a real quote number.
+  const handleDownloadPdf = async () => {
+    if (!requireQuote() || !requireCustomer()) return;
+    // Loaded on demand: the PDF library is large and most visits don't need it.
+    const { buildQuotePdf, quoteFileName } = await import("../lib/quotePdf");
+    const quoteId = save();
+    const pdfDraft = { ...draft, quoteId };
+    const doc = buildQuotePdf({
+      draft: pdfDraft,
+      pricing,
+      finance,
+      rate,
+      programName,
+      otherRates,
+      settings,
+      customer: customer ?? { name: typedName },
+    });
+    doc.save(quoteFileName(pdfDraft, typedName));
+    notify(`PDF downloaded for ${quoteId}`);
   };
 
   const mailtoHref = `mailto:?subject=${encodeURIComponent(
@@ -148,16 +165,7 @@ export default function QuotePage({
 
   return (
     <>
-      <PrintableQuote
-        draft={draft}
-        pricing={pricing}
-        finance={finance}
-        rate={rate}
-        otherRates={otherRates}
-        repName={repName}
-        branch={branch}
-      />
-      <div className="grid grid-cols-1 gap-4 print:hidden xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         {/* Builder */}
         <div className="min-w-0 space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
@@ -321,7 +329,7 @@ export default function QuotePage({
             onSave={handleSave}
             hasOtherRates={hasOtherRates}
             whatsappHref={whatsappHref}
-            onPrint={handlePrint}
+            onDownloadPdf={handleDownloadPdf}
             commissionPct={commissionPct}
             onCommissionChange={onCommissionChange}
           />

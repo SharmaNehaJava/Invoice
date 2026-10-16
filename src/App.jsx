@@ -23,7 +23,7 @@ import { daysFromToday } from "./lib/dates";
 const DEFAULT_SETTINGS = {
   rep: { name: "Jake", email: "", phone: "" },
   manager: { name: "", email: "" },
-  company: { name: "CC Equipment", phone: "", address: "Nanaimo, BC", website: "" },
+  company: { name: "CC Equipment", phone: "", address: "Nanaimo, BC", website: "", validDays: 30 },
 };
 const ROUTES = NAV_ITEMS.map((n) => n.id);
 
@@ -130,8 +130,13 @@ export default function App() {
       customer: currentDraft.customer.trim(),
       machine,
       sellPrice,
-      status,
-      note: status === "review" ? "Cost sheet sent to the sales manager for approval." : "",
+      status: status ?? existing?.status ?? "draft",
+      note:
+        status === "review"
+          ? "Cost sheet sent to the sales manager for approval."
+          : status === undefined
+            ? existing?.note ?? ""
+            : "",
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       draft: { ...currentDraft, quoteId: id },
@@ -180,11 +185,11 @@ export default function App() {
         setDraft={setDraft}
         customers={customers}
         repName={settings.rep.name}
+        settings={settings}
         onSaveQuote={saveQuote}
         notify={notify}
         commissionPct={commissionPct}
         onCommissionChange={setCommissionPct}
-        branch={branch}
         onAddCustomer={addCustomer}
         onUpdateCustomer={updateCustomer}
       />

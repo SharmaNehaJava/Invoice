@@ -100,6 +100,13 @@ export default function SettingsPage({ settings, onSave, notify }) {
           <TextField id="company-phone" label="Phone" type="tel" value={form.company.phone} onChange={set("company", "phone")} />
           <TextField id="company-address" label="Address" value={form.company.address} onChange={set("company", "address")} />
           <TextField id="company-website" label="Website" value={form.company.website} onChange={set("company", "website")} />
+          <TextField
+            id="company-valid-days"
+            label="Quotes valid for (days)"
+            type="number"
+            value={form.company.validDays ?? 30}
+            onChange={(v) => set("company", "validDays")(v === "" ? "" : Number(v))}
+          />
         </div>
       </Card>
     </form>
