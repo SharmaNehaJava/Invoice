@@ -89,6 +89,8 @@ export function NumberInput({ id, value, onChange, prefix, suffix, step = "any",
         min={min}
         value={value}
         onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
+        // Select on focus so typing replaces the value instead of appending to "0".
+        onFocus={(e) => e.target.select()}
         className="font-data w-full min-w-0 bg-transparent text-right text-sm text-text-main focus:outline-none"
       />
       {suffix && <span className="ml-1 text-sm text-text-dim">{suffix}</span>}

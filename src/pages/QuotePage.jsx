@@ -18,7 +18,16 @@ import {
 import { activeFinance, addItem, addLine, customLine, newDraft } from "../lib/quoteDraft";
 import { canShare, copyText, shareText } from "../lib/clipboard";
 
-export default function QuotePage({ draft, setDraft, customers, repName, onSaveQuote, notify }) {
+export default function QuotePage({
+  draft,
+  setDraft,
+  customers,
+  repName,
+  onSaveQuote,
+  notify,
+  commissionPct,
+  onCommissionChange,
+}) {
   const customerRef = useRef(null);
   const [customerError, setCustomerError] = useState("");
 
@@ -175,7 +184,12 @@ export default function QuotePage({ draft, setDraft, customers, repName, onSaveQ
           <Card>
             <CardHeader title="Margin" subtitle="On sell price: cost ÷ (1 − margin)" />
             <div className="p-4">
-              <MarginControl value={draft.marginPct} onChange={(v) => update({ marginPct: v })} />
+              <MarginControl
+                value={draft.marginPct}
+                onChange={(v) => update({ marginPct: v })}
+                totalCost={pricing.totalCost}
+                sellPrice={pricing.sellPrice}
+              />
             </div>
           </Card>
 
@@ -230,6 +244,8 @@ export default function QuotePage({ draft, setDraft, customers, repName, onSaveQ
           onShareCustomer={handleShareCustomer}
           onSendToSheldon={handleSendToSheldon}
           onSave={handleSave}
+          commissionPct={commissionPct}
+          onCommissionChange={onCommissionChange}
         />
       </aside>
 

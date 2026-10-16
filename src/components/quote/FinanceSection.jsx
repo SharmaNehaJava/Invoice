@@ -56,9 +56,14 @@ export default function FinanceSection({ draft, update }) {
         </div>
       )}
 
-      <Field label="Down payment" htmlFor="down-payment">
-        <NumberInput id="down-payment" value={draft.downPayment} onChange={(v) => update({ downPayment: v })} prefix="$" step="100" />
-      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Down payment" htmlFor="down-payment">
+          <NumberInput id="down-payment" value={draft.downPayment} onChange={(v) => update({ downPayment: v })} prefix="$" step="100" />
+        </Field>
+        <Field label="Trade-in allowance" htmlFor="trade-in">
+          <NumberInput id="trade-in" value={draft.tradeIn} onChange={(v) => update({ tradeIn: v })} prefix="$" step="500" />
+        </Field>
+      </div>
     </div>
   );
 }

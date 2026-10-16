@@ -1,6 +1,6 @@
 import { Copy, Mail, Save, Share2 } from "lucide-react";
-import { Button, Card } from "../ui";
-import { formatMoney, formatRate } from "../../lib/pricing";
+import { Button, Card, NumberInput } from "../ui";
+import { formatMoney, formatPercent, formatRate, toNumber } from "../../lib/pricing";
 
 function SummaryRow({ label, value, strong }) {
   return (
@@ -24,6 +24,8 @@ export default function QuoteSummary({
   onShareCustomer,
   onSendToSheldon,
   onSave,
+  commissionPct,
+  onCommissionChange,
 }) {
   const multiLine = draft.lines.length > 1;
 
@@ -33,9 +35,29 @@ export default function QuoteSummary({
         <p className="text-xs font-medium text-text-muted">Sell price</p>
         <p className="font-data text-3xl font-semibold text-text-main">{formatMoney(pricing.sellPrice, 2)}</p>
         <p className="text-xs text-text-dim">
-          {draft.marginPct}% margin · gross profit{" "}
+          {formatPercent(draft.marginPct)} margin · gross profit{" "}
           <span className="font-data text-success">{formatMoney(pricing.grossProfit, 2)}</span>
         </p>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
+        <label htmlFor="commission-rate" className="text-sm text-text-muted">
+          Your commission
+          <span className="block text-xs text-text-dim">% of gross profit</span>
+        </label>
+        <div className="flex items-center gap-2">
+          <NumberInput
+            id="commission-rate"
+            value={commissionPct}
+            onChange={onCommissionChange}
+            suffix="%"
+            step="0.5"
+            className="h-9 w-20"
+          />
+          <span className="font-data min-w-20 text-right text-sm font-semibold text-success">
+            {commissionPct === "" ? "—" : formatMoney((pricing.grossProfit * toNumber(commissionPct)) / 100, 2)}
+          </span>
+        </div>
       </div>
 
       {draft.itemize && multiLine && (

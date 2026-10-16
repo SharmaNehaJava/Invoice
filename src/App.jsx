@@ -49,6 +49,8 @@ export default function App() {
   const [theme, setTheme] = usePersistentState("cc.theme", "light");
   const [user, setUser] = usePersistentState("cc.user", DEFAULT_USER);
   const [branch, setBranch] = usePersistentState("cc.branch", "05 · Nanaimo, BC");
+  // Left blank until the rep enters their own commission rate.
+  const [commissionPct, setCommissionPct] = usePersistentState("cc.commissionPct", "");
 
   // Older saved drafts held a single machine; normalizeDraft upgrades them.
   const [storedDraft, setStoredDraft] = usePersistentState("cc.draft", newDraft);
@@ -137,6 +139,8 @@ export default function App() {
         repName={user?.name}
         onSaveQuote={saveQuote}
         notify={notify}
+        commissionPct={commissionPct}
+        onCommissionChange={setCommissionPct}
       />
     ),
     customers: (

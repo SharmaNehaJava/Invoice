@@ -22,11 +22,12 @@ export const sellFromCost = (cost, marginPct) => {
   return margin < 100 ? cost / (1 - margin / 100) : cost;
 };
 
-// Margin needed to hit a negotiated price, rounded to 0.01%.
+// Margin needed to hit a negotiated price. Kept to 6 decimals so the sell
+// price comes back to the exact cent the rep typed.
 export const marginForPrice = (cost, price) => {
   const p = toNumber(price);
   if (p <= 0) return 0;
-  return Math.round((1 - cost / p) * 10000) / 100;
+  return Math.round((1 - cost / p) * 1e8) / 1e6;
 };
 
 // Freight is entered once for the whole quote. When the quote is itemized,
@@ -96,6 +97,9 @@ export function formatMoney(value, decimals = 0) {
   });
 }
 
+// 21.662609 → "21.66%", 20 → "20%".
+export const formatPercent = (value) => `${Number(toNumber(value).toFixed(2))}%`;
+
 export function formatRate(ratePercent, months) {
   return `${toNumber(ratePercent).toFixed(2)}% / ${months} mo`;
 }
@@ -162,7 +166,7 @@ export function costSheetText({ customer, draft, pricing, finance, rate, program
     row("PDI", formatMoney(pricing.pdiTotal, 2)),
     row("Factory freight", formatMoney(pricing.freight, 2)),
     row("Total cost", formatMoney(pricing.totalCost, 2)),
-    row(`Margin ${toNumber(draft.marginPct)}%`, formatMoney(pricing.grossProfit, 2)),
+    row(`Margin ${formatPercent(draft.marginPct)}`, formatMoney(pricing.grossProfit, 2)),
     row("Sell price", formatMoney(pricing.sellPrice, 2))
   );
 
