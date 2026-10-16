@@ -9,7 +9,7 @@ import StockPage from "./pages/StockPage";
 import BulletinsPage from "./pages/BulletinsPage";
 import AskPage from "./pages/AskPage";
 import usePersistentState from "./hooks/usePersistentState";
-import { newDraft } from "./lib/quoteDraft";
+import { newDraft, normalizeDraft } from "./lib/quoteDraft";
 import {
   INITIAL_CALENDAR_EVENTS,
   INITIAL_CUSTOMERS,
@@ -50,7 +50,17 @@ export default function App() {
   const [user, setUser] = usePersistentState("cc.user", DEFAULT_USER);
   const [branch, setBranch] = usePersistentState("cc.branch", "05 · Nanaimo, BC");
 
-  const [draft, setDraft] = usePersistentState("cc.draft", newDraft);
+  // Older saved drafts held a single machine; normalizeDraft upgrades them.
+  const [storedDraft, setStoredDraft] = usePersistentState("cc.draft", newDraft);
+  const draft = normalizeDraft(storedDraft);
+  const setDraft = useCallback(
+    (next) =>
+      setStoredDraft((prev) => {
+        const current = normalizeDraft(prev);
+        return typeof next === "function" ? next(current) : next;
+      }),
+    [setStoredDraft]
+  );
   const [quotes, setQuotes] = usePersistentState("cc.quotes", INITIAL_QUOTES);
   const [customers, setCustomers] = usePersistentState("cc.customers", INITIAL_CUSTOMERS);
   const [events, setEvents] = usePersistentState("cc.events", INITIAL_CALENDAR_EVENTS);
@@ -107,7 +117,7 @@ export default function App() {
 
   const openQuote = (quote) => {
     if (!quote.draft) return;
-    setDraft({ ...quote.draft, quoteId: quote.id });
+    setDraft(normalizeDraft({ ...quote.draft, quoteId: quote.id }));
     navigate("quote");
   };
 

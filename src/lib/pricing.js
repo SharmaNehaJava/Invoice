@@ -4,27 +4,60 @@
 
 export const WORKING_DAYS_PER_MONTH = 20;
 export const HOURS_PER_DAY = 8;
+export const HOURS_PER_MONTH = WORKING_DAYS_PER_MONTH * HOURS_PER_DAY;
 export const MARGIN_PRESETS = [15, 17, 20, 22, 25];
 export const TARGET_MARGIN = { min: 17, max: 20 };
 
-const toNumber = (value) => {
+export const toNumber = (value) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 };
 
+const sum = (rows, key) => rows.reduce((total, row) => total + row[key], 0);
+
 // Margin is on the sell price (house margin), not a markup on cost:
 // sell = cost / (1 - margin%).
-export function priceQuote({ listPrice, discountPct, pdi, freight, marginPct }) {
-  const list = toNumber(listPrice);
-  const discountAmount = list * (toNumber(discountPct) / 100);
-  const dealerCost = list - discountAmount;
-  const totalCost = dealerCost + toNumber(pdi) + toNumber(freight);
+export const sellFromCost = (cost, marginPct) => {
   const margin = toNumber(marginPct);
-  const sellPrice = margin < 100 ? totalCost / (1 - margin / 100) : totalCost;
+  return margin < 100 ? cost / (1 - margin / 100) : cost;
+};
+
+// Margin needed to hit a negotiated price, rounded to 0.01%.
+export const marginForPrice = (cost, price) => {
+  const p = toNumber(price);
+  if (p <= 0) return 0;
+  return Math.round((1 - cost / p) * 10000) / 100;
+};
+
+// Freight is entered once for the whole quote. When the quote is itemized,
+// each line carries a share of it in proportion to its cost.
+export function priceQuote({ lines = [], freight, marginPct }) {
+  const rows = lines.map((line) => {
+    const qty = Math.max(0, toNumber(line.qty));
+    const listTotal = toNumber(line.listPrice) * qty;
+    const discountAmount = listTotal * (toNumber(line.discountPct) / 100);
+    const dealerCost = listTotal - discountAmount;
+    const pdiTotal = toNumber(line.pdi) * qty;
+    return { line, qty, listTotal, discountAmount, dealerCost, pdiTotal, cost: dealerCost + pdiTotal };
+  });
+
+  const goodsCost = sum(rows, "cost");
+  const freightTotal = toNumber(freight);
+  const totalCost = goodsCost + freightTotal;
+  const sellPrice = sellFromCost(totalCost, marginPct);
+
+  const itemized = rows.map((row) => {
+    const freightShare = goodsCost > 0 ? (freightTotal * row.cost) / goodsCost : freightTotal / rows.length;
+    return { ...row, freightShare, sellPrice: sellFromCost(row.cost + freightShare, marginPct) };
+  });
 
   return {
-    discountAmount,
-    dealerCost,
+    rows: itemized,
+    listTotal: sum(rows, "listTotal"),
+    discountAmount: sum(rows, "discountAmount"),
+    dealerCost: sum(rows, "dealerCost"),
+    pdiTotal: sum(rows, "pdiTotal"),
+    freight: freightTotal,
     totalCost,
     sellPrice,
     grossProfit: sellPrice - totalCost,
@@ -41,8 +74,8 @@ export function monthlyPayment(principal, annualRatePct, months) {
   return (p * r) / (1 - Math.pow(1 + r, -n));
 }
 
-export function financeQuote({ sellPrice, downPayment, ratePercent, months }) {
-  const principal = Math.max(0, toNumber(sellPrice) - toNumber(downPayment));
+export function financeQuote({ sellPrice, downPayment, tradeIn, ratePercent, months }) {
+  const principal = Math.max(0, toNumber(sellPrice) - toNumber(downPayment) - toNumber(tradeIn));
   const monthly = monthlyPayment(principal, ratePercent, months);
   const daily = monthly / WORKING_DAYS_PER_MONTH;
   return {
@@ -67,17 +100,34 @@ export function formatRate(ratePercent, months) {
   return `${toNumber(ratePercent).toFixed(2)}% / ${months} mo`;
 }
 
-export function machineLabel(item) {
-  if (!item) return "";
-  return `${item.model} — ${item.variant}`;
+export function lineLabel(line) {
+  if (!line) return "";
+  return line.variant ? `${line.model} — ${line.variant}` : line.model;
 }
 
+// Short name for a whole quote, e.g. "Avant 750 — GT cab + 2 more".
+export function quoteLabel(lines = []) {
+  if (!lines.length) return "No items";
+  const extra = lines.length - 1;
+  return extra > 0 ? `${lineLabel(lines[0])} + ${extra} more` : lineLabel(lines[0]);
+}
+
+const qtyPrefix = (row) => (row.qty !== 1 ? `${row.qty} × ` : "");
+
 // Plain text that pastes cleanly into an SMS or chat.
-export function customerQuoteText({ item, pricing, finance, rate, repName }) {
-  const lines = [
-    `CC Equipment quote — ${machineLabel(item)}`,
-    `Price: ${formatMoney(pricing.sellPrice, 2)} + tax`,
-  ];
+export function customerQuoteText({ pricing, finance, rate, repName, tradeIn, itemize }) {
+  const { rows } = pricing;
+  const lines = ["CC Equipment quote"];
+
+  if (itemize && rows.length > 1) {
+    rows.forEach((row) => lines.push(`- ${qtyPrefix(row)}${lineLabel(row.line)}: ${formatMoney(row.sellPrice, 2)}`));
+  } else {
+    rows.forEach((row) => lines.push(`- ${qtyPrefix(row)}${lineLabel(row.line)}`));
+  }
+
+  lines.push(`Price: ${formatMoney(pricing.sellPrice, 2)} + tax (includes PDI and freight)`);
+  if (toNumber(tradeIn) > 0) lines.push(`Less trade-in: ${formatMoney(tradeIn, 2)}`);
+
   if (finance.monthly > 0) {
     lines.push(
       `Finance: ${formatMoney(finance.monthly, 2)}/month over ${rate.months} months at ${toNumber(rate.ratePercent).toFixed(2)}% (OAC)`,
@@ -89,26 +139,38 @@ export function customerQuoteText({ item, pricing, finance, rate, repName }) {
 }
 
 // Detailed breakdown for the sales manager's sign-off.
-export function costSheetText({ customer, item, inputs, pricing, finance, rate, programName }) {
-  const row = (label, value) => `${label.padEnd(18, " ")}${value}`;
-  const lines = [
-    `COST SHEET FOR REVIEW — ${customer || "No customer yet"}`,
-    `${machineLabel(item)}${item.partNumber ? ` (${item.partNumber})` : ""}`,
-    "",
-    row("List price", formatMoney(inputs.listPrice, 2)),
-    row(`Less ${toNumber(inputs.discountPct)}%`, `-${formatMoney(pricing.discountAmount, 2)}`),
-    row("Dealer cost", formatMoney(pricing.dealerCost, 2)),
-    row("PDI", formatMoney(inputs.pdi, 2)),
-    row("Factory freight", formatMoney(inputs.freight, 2)),
-    row("Total cost", formatMoney(pricing.totalCost, 2)),
-    row(`Margin ${toNumber(inputs.marginPct)}%`, formatMoney(pricing.grossProfit, 2)),
-    row("Sell price", formatMoney(pricing.sellPrice, 2)),
-  ];
-  if (finance.monthly > 0) {
+export function costSheetText({ customer, draft, pricing, finance, rate, programName, itemize }) {
+  const row = (label, value) => `${label.padEnd(20, " ")}${value}`;
+  const lines = [`COST SHEET FOR REVIEW — ${customer || "No customer yet"}`, ""];
+
+  pricing.rows.forEach((r) => {
+    const { line } = r;
+    lines.push(`${qtyPrefix(r)}${lineLabel(line)}${line.partNumber ? ` (${line.partNumber})` : ""}`);
     lines.push(
-      "",
-      `Finance: ${programName}, ${formatRate(rate.ratePercent, rate.months)}`,
-      row("Down payment", formatMoney(inputs.downPayment, 2)),
+      `  List ${formatMoney(line.listPrice, 2)} less ${toNumber(line.discountPct)}% + PDI ${formatMoney(line.pdi, 2)} = ${formatMoney(r.cost, 2)}`
+    );
+    if (itemize && pricing.rows.length > 1) {
+      lines.push(`  Freight share ${formatMoney(r.freightShare, 2)} → sell ${formatMoney(r.sellPrice, 2)}`);
+    }
+  });
+
+  lines.push(
+    "",
+    row("List total", formatMoney(pricing.listTotal, 2)),
+    row("Less discounts", `-${formatMoney(pricing.discountAmount, 2)}`),
+    row("Dealer cost", formatMoney(pricing.dealerCost, 2)),
+    row("PDI", formatMoney(pricing.pdiTotal, 2)),
+    row("Factory freight", formatMoney(pricing.freight, 2)),
+    row("Total cost", formatMoney(pricing.totalCost, 2)),
+    row(`Margin ${toNumber(draft.marginPct)}%`, formatMoney(pricing.grossProfit, 2)),
+    row("Sell price", formatMoney(pricing.sellPrice, 2))
+  );
+
+  if (finance.monthly > 0) {
+    lines.push("", `Finance: ${programName}, ${formatRate(rate.ratePercent, rate.months)}`);
+    if (toNumber(draft.downPayment) > 0) lines.push(row("Down payment", formatMoney(draft.downPayment, 2)));
+    if (toNumber(draft.tradeIn) > 0) lines.push(row("Trade-in", formatMoney(draft.tradeIn, 2)));
+    lines.push(
       row("Monthly", formatMoney(finance.monthly, 2)),
       row("Per day / hour", `${formatMoney(finance.daily, 2)} / ${formatMoney(finance.hourly, 2)}`)
     );
