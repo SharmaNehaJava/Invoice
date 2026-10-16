@@ -1,4 +1,4 @@
-import { Copy, FileDown, Mail, MessageCircle, Save, Share2 } from "lucide-react";
+import { ClipboardCopy, Copy, FileDown, Mail, MessageCircle, Save, Share2, ShieldCheck } from "lucide-react";
 import { Button, Card, NumberInput } from "../ui";
 import { formatMoney, formatPercent, formatRate, toNumber } from "../../lib/pricing";
 
@@ -19,10 +19,11 @@ export default function QuoteSummary({
   rate,
   programName,
   canShare,
-  mailtoHref,
   onCopyCustomer,
   onShareCustomer,
-  onSendForApproval,
+  onEmailCustomer,
+  onEmailManager,
+  onCopyCostSheet,
   onSave,
   commissionPct,
   onCommissionChange,
@@ -120,18 +121,15 @@ export default function QuoteSummary({
             </Button>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button size="lg" className="flex-1" onClick={onSendForApproval}>
-            Cost sheet to sales manager
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={onEmailCustomer}>
+            <Mail size={16} aria-hidden="true" />
+            Email customer
           </Button>
-          <a
-            href={mailtoHref}
-            aria-label="Open cost sheet in email"
-            title="Open in email"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-line-strong text-text-main hover:bg-panel-hover"
-          >
-            <Mail size={16} />
-          </a>
+          <Button onClick={onEmailManager}>
+            <ShieldCheck size={16} aria-hidden="true" />
+            Get approval
+          </Button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <a
@@ -148,6 +146,10 @@ export default function QuoteSummary({
             Download PDF
           </Button>
         </div>
+        <Button variant="ghost" size="sm" className="w-full" onClick={onCopyCostSheet}>
+          <ClipboardCopy size={14} aria-hidden="true" />
+          Copy cost sheet text
+        </Button>
         <Button variant="ghost" size="lg" className="w-full" onClick={onSave}>
           <Save size={16} aria-hidden="true" />
           {draft.quoteId ? `Update ${draft.quoteId}` : "Save to customer"}

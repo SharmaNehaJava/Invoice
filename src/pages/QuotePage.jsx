@@ -20,6 +20,9 @@ import {
 } from "../lib/pricing";
 import { activeFinance, addItem, addLine, customLine, newDraft } from "../lib/quoteDraft";
 import { canShare, copyText, shareText } from "../lib/clipboard";
+import { emailHtml, sendEmail } from "../lib/emailApi";
+import { addDays, todayISO } from "../lib/dates";
+import EmailQuoteDialog from "../components/quote/EmailQuoteDialog";
 
 export default function QuotePage({
   draft,
@@ -33,10 +36,15 @@ export default function QuotePage({
   settings,
   onAddCustomer,
   onUpdateCustomer,
+  emailLive,
+  onEmailSent,
+  onUpdateSettings,
 }) {
   const customerRef = useRef(null);
   const [customerError, setCustomerError] = useState("");
   const [customerDialog, setCustomerDialog] = useState(null);
+  // null, "customer" or "manager": who the email dialog opens for.
+  const [emailAudience, setEmailAudience] = useState(null);
 
   const typedName = draft.customer.trim();
   const customer = customers.find((c) => c.name.toLowerCase() === typedName.toLowerCase());
@@ -123,11 +131,99 @@ export default function QuotePage({
     if (requireQuote()) shareText(customerQuoteText({ ...textArgs, repName }), "CC Equipment quote");
   };
 
-  const handleSendForApproval = async () => {
-    if (!requireQuote() || !requireCustomer()) return;
+  const handleCopyCostSheet = async () => {
+    if (!requireQuote()) return;
     const ok = await copyText(costSheetText(textArgs));
-    save("review");
-    notify(ok ? "Cost sheet copied and saved as awaiting approval" : "Saved as awaiting approval. Copy failed — try again.", ok ? "success" : "error");
+    notify(ok ? "Cost sheet copied" : "Couldn't copy the cost sheet", ok ? "success" : "error");
+  };
+
+  const openEmail = (audience) => {
+    if (requireQuote() && requireCustomer()) setEmailAudience(audience);
+  };
+
+  const managerLabel = settings.manager.name || "Sales manager";
+  const emailDefaults = {
+    customerSubject: `Your quote from ${settings.company.name} — ${quoteLabel(draft.lines)}`,
+    customerMessage: `Hi ${customer?.contact || typedName},\n\nThanks for your time. Here's the quote we discussed:\n\n${customerQuoteText({ ...textArgs, repName: "" })}\n\nThe full quote is attached. Let me know if you have any questions.`,
+    managerSubject: `Approval needed: ${typedName} — ${quoteLabel(draft.lines)}`,
+    managerMessage: `Hi ${settings.manager.name || ""},\n\nCan you review this quote for ${typedName}? Cost sheet below.`.replace("Hi ,", "Hi,"),
+  };
+
+  // Sends the customer and manager emails separately so the customer never
+  // sees costs. Each sent email is recorded right away, so if the second
+  // one fails the first is still tracked.
+  const handleEmailSend = async ({ customer: toCustomer, manager: toManager, attachPdf, followUpDays }) => {
+    const quoteId = save(toCustomer ? "sent" : "review");
+    const sentDraft = { ...draft, quoteId };
+    const args = { ...textArgs, draft: sentDraft };
+    const { company, rep } = settings;
+
+    let attachments = [];
+    if (attachPdf) {
+      const { buildQuotePdf, quoteFileName, pdfToBase64 } = await import("../lib/quotePdf");
+      const doc = buildQuotePdf({
+        draft: sentDraft,
+        pricing,
+        finance,
+        rate,
+        programName,
+        otherRates,
+        settings,
+        customer: { ...(customer ?? { name: typedName }), email: toCustomer?.to ?? customer?.email },
+      });
+      attachments = [{ filename: quoteFileName(sentDraft, typedName), content: pdfToBase64(doc) }];
+    }
+
+    const replyTo = rep.email ? [rep.email] : [];
+    const sent = [];
+    const send = async (kind, message, extra) => {
+      const costSheet = kind === "manager" ? costSheetText(args) : "";
+      const result = await sendEmail({
+        to: [message.to],
+        replyTo,
+        subject: message.subject,
+        text: costSheet ? `${message.message}\n\n${costSheet}` : message.message,
+        html: emailHtml({ message: message.message, company, rep, preformatted: costSheet }),
+        attachments,
+      });
+      onEmailSent({
+        id: result.id,
+        demo: result.demo,
+        sentAt: result.sentAt,
+        kind,
+        to: message.to,
+        subject: message.subject,
+        quoteId,
+        customer: typedName,
+        ...extra,
+      });
+      sent.push(kind);
+      return result;
+    };
+
+    try {
+      if (toManager) {
+        await send("manager", toManager);
+        if (toManager.saveAddress) onUpdateSettings({ manager: { email: toManager.to } });
+      }
+      if (toCustomer) {
+        const followUp = followUpDays ? addDays(todayISO(), followUpDays) : "";
+        await send("customer", toCustomer, { followUp });
+        if (toCustomer.saveAddress) {
+          if (customer) onUpdateCustomer(customer.id, { email: toCustomer.to });
+          else onAddCustomer({ name: typedName, email: toCustomer.to });
+        }
+      }
+    } catch (error) {
+      throw new Error(
+        sent.length ? `The ${sent[0]} email was sent, but the next one failed: ${error.message}` : error.message,
+        { cause: error }
+      );
+    }
+
+    setEmailAudience(null);
+    const who = sent.length === 2 ? "customer and sales manager" : sent[0] === "manager" ? "sales manager" : typedName;
+    notify(emailLive === true ? `Quote emailed to ${who}` : `Demo: quote "sent" to ${who} (not really emailed)`);
   };
 
   const handleSave = () => {
@@ -159,9 +255,6 @@ export default function QuotePage({
     notify(`PDF downloaded for ${quoteId}`);
   };
 
-  const mailtoHref = `mailto:?subject=${encodeURIComponent(
-    `Cost sheet for review — ${draft.customer || quoteLabel(draft.lines)}`
-  )}&body=${encodeURIComponent(costSheetText(textArgs))}`;
 
   return (
     <>
@@ -322,10 +415,11 @@ export default function QuotePage({
             rate={rate}
             programName={programName}
             canShare={canShare()}
-            mailtoHref={mailtoHref}
             onCopyCustomer={handleCopyCustomer}
             onShareCustomer={handleShareCustomer}
-            onSendForApproval={handleSendForApproval}
+            onEmailCustomer={() => openEmail("customer")}
+            onEmailManager={() => openEmail("manager")}
+            onCopyCostSheet={handleCopyCostSheet}
             onSave={handleSave}
             hasOtherRates={hasOtherRates}
             whatsappHref={whatsappHref}
@@ -349,6 +443,19 @@ export default function QuotePage({
           </Button>
         </div>
       </div>
+
+      {emailAudience && (
+        <EmailQuoteDialog
+          initialAudience={emailAudience}
+          customer={customer}
+          customerName={typedName}
+          manager={{ label: managerLabel, email: settings.manager.email }}
+          emailLive={emailLive}
+          defaults={emailDefaults}
+          onSend={handleEmailSend}
+          onClose={() => setEmailAudience(null)}
+        />
+      )}
 
       {customerDialog && (
         <Dialog

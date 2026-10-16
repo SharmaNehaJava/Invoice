@@ -10,6 +10,8 @@ import BulletinsPage from "./pages/BulletinsPage";
 import AskPage from "./pages/AskPage";
 import SettingsPage from "./pages/SettingsPage";
 import usePersistentState from "./hooks/usePersistentState";
+import useEmailTracking from "./hooks/useEmailTracking";
+import { fetchEmailConfig } from "./lib/emailApi";
 import { newDraft, normalizeDraft } from "./lib/quoteDraft";
 import {
   INITIAL_CALENDAR_EVENTS,
@@ -77,6 +79,10 @@ export default function App() {
   const [events, setEvents] = usePersistentState("cc.events", INITIAL_CALENDAR_EVENTS);
   const [feedback] = usePersistentState("cc.feedback", INITIAL_FEEDBACK);
   const [activities, setActivities] = usePersistentState("cc.activities", INITIAL_ACTIVITIES);
+  // Every email sent from the app, with its latest tracking status.
+  const [emails, setEmails] = usePersistentState("cc.emails", []);
+  // true = real sending, false = demo mode, "unavailable" = no email server.
+  const [emailLive, setEmailLive] = useState(null);
   // Which customer to show when jumping to the Customers page from elsewhere.
   const [customerFocus, setCustomerFocus] = useState(null);
 
@@ -87,6 +93,14 @@ export default function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }, []);
+
+  useEffect(() => {
+    fetchEmailConfig()
+      .then((config) => setEmailLive(config.live))
+      .catch(() => setEmailLive("unavailable"));
+  }, []);
+
+  useEmailTracking(emails, setEmails, notify);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -170,6 +184,33 @@ export default function App() {
     setActivities((list) => list.map((a) => (a.id === id ? { ...a, done: !a.done } : a)));
   const deleteActivity = (id) => setActivities((list) => list.filter((a) => a.id !== id));
 
+  // Called once per email the quote desk sends.
+  const recordEmail = (email) => {
+    setEmails((list) => [{ ...email, status: "sent", history: [{ status: "sent", at: email.sentAt }] }, ...list]);
+    setActivities((list) => [
+      {
+        id: `A-${Date.now()}-${email.kind}`,
+        customer: email.customer,
+        note:
+          email.kind === "customer"
+            ? `Emailed quote ${email.quoteId} to ${email.to}.`
+            : `Sent cost sheet for ${email.quoteId} to the sales manager (${email.to}) for approval.`,
+        followUp: email.followUp ?? "",
+        quoteId: email.quoteId,
+        emailId: email.id,
+        done: false,
+        createdAt: email.sentAt,
+      },
+      ...list,
+    ]);
+  };
+
+  const updateSettings = (patch) =>
+    setSettings((s) => ({
+      ...s,
+      ...Object.fromEntries(Object.entries(patch).map(([key, value]) => [key, { ...s[key], ...value }])),
+    }));
+
   const openCustomer = (name) => {
     setCustomerFocus(name);
     navigate("customers");
@@ -190,6 +231,9 @@ export default function App() {
         notify={notify}
         commissionPct={commissionPct}
         onCommissionChange={setCommissionPct}
+        emailLive={emailLive}
+        onEmailSent={recordEmail}
+        onUpdateSettings={updateSettings}
         onAddCustomer={addCustomer}
         onUpdateCustomer={updateCustomer}
       />
