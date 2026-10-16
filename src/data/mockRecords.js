@@ -1,42 +1,42 @@
+// Seed data used the first time the app runs on a device.
+// After that, everything lives in browser storage (see usePersistentState).
+
+export const QUOTE_STATUSES = {
+  draft: { label: "Draft", tone: "neutral" },
+  review: { label: "With Sheldon", tone: "warning" },
+  approved: { label: "Approved", tone: "success" },
+  sent: { label: "Sent to customer", tone: "info" },
+};
+
+export const INITIAL_CUSTOMERS = [
+  { id: "C-01", name: "RG Excavating", contact: "Jeff", phone: "", email: "" },
+  { id: "C-02", name: "Garden City Landscaping", contact: "Grant", phone: "", email: "" },
+  { id: "C-03", name: "Miller's Tree Service", contact: "", phone: "", email: "" },
+  { id: "C-04", name: "Arbutus Ridge Golf Club", contact: "", phone: "", email: "" },
+];
+
+// `draft` holds the quote-desk inputs so a saved quote can be reopened.
+// The two seed quotes predate the desk, so they have no draft.
 export const INITIAL_QUOTES = [
   {
     id: "Q-1001",
     customer: "RG Excavating",
-    contact: "Jeff",
-    machine: "DW30 Wheel Dumper ROPS, Standard Tires",
-    totalPrice: 107415,
-    date: "2026-10-06",
-    status: "Approved",
+    machine: "DW30 — ROPS, standard tires",
+    sellPrice: 107415,
+    status: "approved",
+    note: "Approved by Sheldon at 20% margin. Standard freight applied.",
+    createdAt: "2026-10-06T10:30:00",
+    draft: null,
   },
   {
     id: "Q-1002",
     customer: "Garden City Landscaping",
-    contact: "Grant",
-    machine: "Avant Multi-Function + Weed Brush",
-    totalPrice: 48900,
-    date: "2026-10-05",
-    status: "Pending Review",
-  },
-];
-
-export const INITIAL_APPROVALS = [
-  {
-    id: "APP-01",
-    quoteId: "Q-1001",
-    customer: "RG Excavating",
-    machine: "DW30 Wheel Dumper",
-    status: "APPROVED",
-    managerNote: "Approved by Sheldon at 20% markup. Standard freight applied.",
-    timestamp: "10:30 AM Today",
-  },
-  {
-    id: "APP-02",
-    quoteId: "Q-1002",
-    customer: "Garden City Landscaping",
-    machine: "Avant Loader with Attachments",
-    status: "PENDING REVIEW",
-    managerNote: "Awaiting Sheldon review on custom PDI rate.",
-    timestamp: "11:46 AM Today",
+    machine: "Avant multi-function + weed brush",
+    sellPrice: 48900,
+    status: "review",
+    note: "Awaiting Sheldon review on custom PDI rate.",
+    createdAt: "2026-10-05T11:46:00",
+    draft: null,
   },
 ];
 
@@ -46,8 +46,9 @@ export const INITIAL_CALENDAR_EVENTS = [
     time: "09:00 WED",
     title: "Demo: Bandit 90XP",
     location: "Arbutus Ridge Golf Club",
-    customer: "Golf Course Ops",
+    customer: "Arbutus Ridge Golf Club",
     type: "DEMO",
+    status: "SCHEDULED",
   },
   {
     id: "EV-02",
@@ -56,6 +57,7 @@ export const INITIAL_CALENDAR_EVENTS = [
     location: "Job Site #4",
     customer: "Garden City Landscaping",
     type: "FOLLOW-UP",
+    status: "SCHEDULED",
   },
 ];
 
@@ -63,16 +65,16 @@ export const INITIAL_FEEDBACK = [
   {
     id: "FB-01",
     customer: "RG Excavating",
-    machine: "DW30 Dumper",
-    rating: "5/5",
+    machine: "DW30 dumper",
+    rating: 5,
     comment: "DW30 handled the steep wet clay bank easily. Want lease rates for 48 months.",
     date: "Oct 4, 2026",
   },
   {
     id: "FB-02",
     customer: "Miller's Tree Service",
-    machine: "Bandit 90XP Chipper",
-    rating: "4/5",
+    machine: "Bandit 90XP chipper",
+    rating: 4,
     comment: "High processing speed, great hydraulics. Need to check trade-in value on our old unit.",
     date: "Oct 2, 2026",
   },

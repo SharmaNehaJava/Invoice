@@ -1,120 +1,207 @@
-import { useState } from "react";
-import Header from "./components/Header";
-import HeaderDrawers from "./components/HeaderDrawers";
-import LeftSidebar from "./components/LeftSidebar";
-import QuoteDesk from "./components/QuoteDesk";
-import RightSidebar from "./components/RightSidebar";
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import AppShell from "./components/AppShell";
+import { NAV_ITEMS } from "./lib/nav";
+import QuotePage from "./pages/QuotePage";
+import CustomersPage from "./pages/CustomersPage";
+import QuotesPage from "./pages/QuotesPage";
+import CalendarPage from "./pages/CalendarPage";
+import StockPage from "./pages/StockPage";
+import BulletinsPage from "./pages/BulletinsPage";
+import AskPage from "./pages/AskPage";
+import usePersistentState from "./hooks/usePersistentState";
+import { newDraft } from "./lib/quoteDraft";
 import {
-  INITIAL_QUOTES,
-  INITIAL_APPROVALS,
   INITIAL_CALENDAR_EVENTS,
+  INITIAL_CUSTOMERS,
   INITIAL_FEEDBACK,
+  INITIAL_QUOTES,
 } from "./data/mockRecords";
 
+const DEFAULT_USER = { name: "Jake", email: "jake@ccequipment.ca" };
+const ROUTES = NAV_ITEMS.map((n) => n.id);
+
+const routeFromHash = () => {
+  const id = window.location.hash.replace(/^#\/?/, "");
+  return ROUTES.includes(id) ? id : "quote";
+};
+
+function useHashRoute() {
+  const [route, setRoute] = useState(routeFromHash);
+  useEffect(() => {
+    const onChange = () => setRoute(routeFromHash());
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  const navigate = useCallback((id) => {
+    window.location.hash = `/${id}`;
+    window.scrollTo(0, 0);
+  }, []);
+  return [route, navigate];
+}
+
+function nextQuoteId(quotes) {
+  const max = quotes.reduce((m, q) => Math.max(m, Number(q.id.replace(/\D/g, "")) || 0), 1000);
+  return `Q-${max + 1}`;
+}
+
 export default function App() {
-  const [user, setUser] = useState({
-    name: "Jake",
-    email: "jake@ccequipment.ca",
-  });
+  const [route, navigate] = useHashRoute();
+  const [theme, setTheme] = usePersistentState("cc.theme", "light");
+  const [user, setUser] = usePersistentState("cc.user", DEFAULT_USER);
+  const [branch, setBranch] = usePersistentState("cc.branch", "05 · Nanaimo, BC");
 
-  const [activeModal, setActiveModal] = useState(null);
+  const [draft, setDraft] = usePersistentState("cc.draft", newDraft);
+  const [quotes, setQuotes] = usePersistentState("cc.quotes", INITIAL_QUOTES);
+  const [customers, setCustomers] = usePersistentState("cc.customers", INITIAL_CUSTOMERS);
+  const [events, setEvents] = usePersistentState("cc.events", INITIAL_CALENDAR_EVENTS);
+  const [feedback] = usePersistentState("cc.feedback", INITIAL_FEEDBACK);
 
-  const [quotes, setQuotes] = useState(INITIAL_QUOTES);
-  const [approvals, setApprovals] = useState(INITIAL_APPROVALS);
-  const [calendarEvents, setCalendarEvents] = useState(INITIAL_CALENDAR_EVENTS);
-  const [feedback] = useState(INITIAL_FEEDBACK);
-  const [currentQuote, setCurrentQuote] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+  const notify = useCallback((message, tone = "success") => {
+    setToast({ message, tone });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }, []);
 
-  // Send quote to Sheldon
-  const handleSendToSheldon = (quoteData) => {
-    const newApproval = {
-      id: `APP-0${approvals.length + 1}`,
-      quoteId: `Q-100${quotes.length + 1}`,
-      customer: quoteData.customer || "Current Prospect",
-      machine: quoteData.machineName,
-      status: "PENDING REVIEW",
-      managerNote: `Markup submitted at ${quoteData.markup}%. Awaiting Sheldon's sign-off.`,
-      timestamp: "Just now",
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#101419" : "#f4f5f7");
+  }, [theme]);
+
+  const addCustomer = (data) => {
+    const id = `C-${Date.now()}`;
+    setCustomers((list) => [...list, { id, contact: "", phone: "", email: "", ...data }]);
+    return id;
+  };
+
+  const ensureCustomer = (name) => {
+    const trimmed = name.trim();
+    if (trimmed && !customers.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      addCustomer({ name: trimmed });
+    }
+  };
+
+  // Create or update a quote from the desk; returns its id.
+  const saveQuote = (currentDraft, { status, machine, sellPrice }) => {
+    const id = currentDraft.quoteId ?? nextQuoteId(quotes);
+    const existing = quotes.find((q) => q.id === id);
+    const record = {
+      ...existing,
+      id,
+      customer: currentDraft.customer.trim(),
+      machine,
+      sellPrice,
+      status,
+      note: status === "review" ? "Cost sheet sent for Sheldon's sign-off." : "",
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      draft: { ...currentDraft, quoteId: id },
     };
-
-    setApprovals([newApproval, ...approvals]);
-
-    const newQuoteRecord = {
-      id: newApproval.quoteId,
-      customer: quoteData.customer || "Current Prospect",
-      contact: "Rep Jake",
-      machine: quoteData.machineName,
-      totalPrice: quoteData.sellPrice,
-      date: new Date().toISOString().split("T")[0],
-      status: "Pending Review",
-    };
-    setQuotes([newQuoteRecord, ...quotes]);
-    setActiveModal("inbox");
-  };
-
-  // Calendar Event Handlers
-  const handleAddCalendarEvent = (newEvent) => {
-    setCalendarEvents([newEvent, ...calendarEvents]);
-  };
-
-  const handleUpdateCalendarEvent = (updated) => {
-    setCalendarEvents(calendarEvents.map((ev) => (ev.id === updated.id ? updated : ev)));
-  };
-
-  const handleDeleteCalendarEvent = (id) => {
-    setCalendarEvents(calendarEvents.filter((ev) => ev.id !== id));
-  };
-
-  // Simulate manager approval
-  const handleApproveQuote = (appId) => {
-    setApprovals(
-      approvals.map((a) =>
-        a.id === appId
-          ? { ...a, status: "APPROVED", managerNote: "Approved by Sheldon at current terms." }
-          : a
-      )
+    setQuotes((list) =>
+      list.some((q) => q.id === id) ? list.map((q) => (q.id === id ? record : q)) : [record, ...list]
     );
+    ensureCustomer(currentDraft.customer);
+    return id;
+  };
+
+  const openQuote = (quote) => {
+    if (!quote.draft) return;
+    setDraft({ ...quote.draft, quoteId: quote.id });
+    navigate("quote");
+  };
+
+  const startQuoteFor = (customer) => {
+    setDraft({ ...newDraft(), customer });
+    navigate("quote");
+  };
+
+  const pendingReview = quotes.filter((q) => q.status === "review").length;
+
+  const pages = {
+    quote: (
+      <QuotePage
+        draft={draft}
+        setDraft={setDraft}
+        customers={customers}
+        repName={user?.name}
+        onSaveQuote={saveQuote}
+        notify={notify}
+      />
+    ),
+    customers: (
+      <CustomersPage
+        customers={customers}
+        quotes={quotes}
+        events={events}
+        feedback={feedback}
+        onAddCustomer={addCustomer}
+        onOpenQuote={openQuote}
+        onQuoteFor={startQuoteFor}
+        notify={notify}
+      />
+    ),
+    quotes: (
+      <QuotesPage
+        quotes={quotes}
+        onOpen={openQuote}
+        onStatusChange={(id, status) =>
+          setQuotes((list) =>
+            list.map((q) =>
+              q.id === id
+                ? { ...q, status, note: status === "approved" ? "Approved by Sheldon." : q.note }
+                : q
+            )
+          )
+        }
+        onDelete={(id) => setQuotes((list) => list.filter((q) => q.id !== id))}
+        onNewQuote={() => startQuoteFor("")}
+      />
+    ),
+    calendar: (
+      <CalendarPage
+        events={events}
+        customers={customers}
+        onAdd={(ev) => setEvents((list) => [ev, ...list])}
+        onUpdate={(ev) => setEvents((list) => list.map((e) => (e.id === ev.id ? ev : e)))}
+        onDelete={(id) => setEvents((list) => list.filter((e) => e.id !== id))}
+      />
+    ),
+    stock: <StockPage />,
+    bulletins: <BulletinsPage />,
+    ask: <AskPage />,
   };
 
   return (
-    <div className="min-h-screen bg-[#101419] text-[#e8edf2] p-4 font-mono select-none">
-      <Header
-        user={user}
-        onSignOut={() => setUser(null)}
-        onSignIn={() => setUser({ name: "Jake", email: "jake@ccequipment.ca" })}
-        onNavigate={(drawerName) => setActiveModal(drawerName)}
-      />
+    <AppShell
+      route={route}
+      onNavigate={navigate}
+      badges={{ quotes: pendingReview }}
+      topBar={{
+        user,
+        onSignIn: () => setUser(DEFAULT_USER),
+        onSignOut: () => setUser(null),
+        theme,
+        onToggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
+        branch,
+        onBranchChange: setBranch,
+      }}
+    >
+      {pages[route]}
 
-      <HeaderDrawers
-        activeModal={activeModal}
-        onClose={() => setActiveModal(null)}
-        quotes={quotes}
-        approvals={approvals}
-        calendarEvents={calendarEvents}
-        feedback={feedback}
-        onLoadQuote={(loaded) => setCurrentQuote(loaded)}
-        onAddCalendarEvent={handleAddCalendarEvent}
-        onUpdateCalendarEvent={handleUpdateCalendarEvent}
-        onDeleteCalendarEvent={handleDeleteCalendarEvent}
-        onApproveQuote={handleApproveQuote}
-      />
-
-      {/* 3-Column Cockpit */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-3">
-          <LeftSidebar />
-        </div>
-        <div className="lg:col-span-6">
-          <QuoteDesk
-            onSendToSheldon={handleSendToSheldon}
-            loadedQuote={currentQuote}
-          />
-        </div>
-        <div className="lg:col-span-3">
-          <RightSidebar />
-        </div>
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 lg:bottom-20 xl:bottom-6">
+        {toast && (
+          <div
+            className={`pointer-events-auto rounded-lg border px-4 py-2.5 text-sm font-medium shadow-lg ${
+              toast.tone === "error"
+                ? "border-error/30 bg-error-subtle text-error"
+                : "border-success/30 bg-success-subtle text-success"
+            }`}
+          >
+            {toast.message}
+          </div>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }

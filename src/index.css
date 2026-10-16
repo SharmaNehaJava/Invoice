@@ -1,58 +1,112 @@
-
 @import "tailwindcss";
 
-@theme {
-  /* Typography */
+/* Dark mode is driven by a `.dark` class on <html> (see ThemeToggle). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Utilities read the runtime variables below, so one class works in both themes. */
+@theme inline {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  /* App surfaces */
-  --color-app: #101419;
-  --color-panel: #191f26;
-  --color-panel-hover: #202730;
-  --color-elevated: #242c35;
-  --color-elevated-hover: #323d4a;
-  --color-border: #343e49;
+  --color-app: var(--app);
+  --color-panel: var(--panel);
+  --color-panel-hover: var(--panel-hover);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
 
-  /* Brand accent */
-  --color-accent: #f0b44d;
-  --color-accent-hover: #ffc96b;
-  --color-accent-subtle: #2b2416;
-  --color-accent-ink: #17130b;
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
 
-  /* Text */
-  --color-text-main: #e8edf2;
-  --color-text-muted: #a3afbc;
-  --color-text-dim: #8b98a8;
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-text: var(--accent-text);
+  --color-accent-ink: var(--accent-ink);
 
-  /* Semantic states */
-  --color-status-success: #72d6a0;
-  --color-status-warning: #ffd08a;
-  --color-status-error: #ff8f98;
-  --color-status-info: #9cc5ff;
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-error: var(--error);
+  --color-error-subtle: var(--error-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+}
+
+:root {
+  color-scheme: light;
+
+  --app: #f4f5f7;
+  --panel: #ffffff;
+  --panel-hover: #f1f3f6;
+  --subtle: #f7f8fa;
+  --line: #e3e6eb;
+  --line-strong: #cdd3db;
+
+  --text-main: #111827;
+  --text-muted: #4b5563;
+  --text-dim: #6b7280;
+
+  --accent: #f0b44d;
+  --accent-hover: #e5a43a;
+  --accent-subtle: #fdf3e1;
+  --accent-text: #8a5208;
+  --accent-ink: #1f1608;
+
+  --success: #15803d;
+  --success-subtle: #e8f6ee;
+  --warning: #a16207;
+  --warning-subtle: #fdf6e3;
+  --error: #b91c1c;
+  --error-subtle: #fdecec;
+  --info: #1d4ed8;
+  --info-subtle: #e8effd;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --app: #101419;
+  --panel: #171c23;
+  --panel-hover: #1f262f;
+  --subtle: #12161c;
+  --line: #262e38;
+  --line-strong: #36404c;
+
+  --text-main: #e8edf2;
+  --text-muted: #a3afbc;
+  --text-dim: #8b98a8;
+
+  --accent: #f0b44d;
+  --accent-hover: #ffc96b;
+  --accent-subtle: #2b2416;
+  --accent-text: #f0b44d;
+  --accent-ink: #17130b;
+
+  --success: #72d6a0;
+  --success-subtle: #16291c;
+  --warning: #ffd08a;
+  --warning-subtle: #2e2316;
+  --error: #ff8f98;
+  --error-subtle: #2e1719;
+  --info: #9cc5ff;
+  --info-subtle: #19222e;
 }
 
 @layer base {
-  :root {
-    color-scheme: dark;
-    font-family: var(--font-sans);
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
+  html {
+    min-width: 320px;
+    background: var(--app);
     -webkit-text-size-adjust: 100%;
   }
 
-  html {
-    min-width: 320px;
-    min-height: 100%;
-    background: var(--color-app);
-  }
-
   body {
-    min-width: 320px;
-    min-height: 100vh;
     margin: 0;
-    background: var(--color-app);
-    color: var(--color-text-main);
+    min-height: 100vh;
+    background: var(--app);
+    color: var(--text-main);
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.5;
@@ -60,14 +114,8 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-  }
-
   button {
+    cursor: pointer;
     touch-action: manipulation;
   }
 
@@ -76,39 +124,37 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 3px;
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Hide number spinners; we provide our own steppers where they matter. */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
   }
 
   ::selection {
-    background: var(--color-accent);
-    color: var(--color-accent-ink);
+    background: var(--accent);
+    color: var(--accent-ink);
   }
 }
 
-/* Apply to prices, machine codes, IDs and financial figures. */
+/* Prices, part numbers and other figures. */
 .font-data {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-}
-
-/* Horizontal navigation: hide scrollbar without disabling scrolling. */
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
