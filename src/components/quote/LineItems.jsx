@@ -1,18 +1,24 @@
-import { Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, Trash2, X } from "lucide-react";
 import { Badge, Button, Field, NumberInput, inputClass } from "../ui";
 import { formatMoney, toNumber } from "../../lib/pricing";
 
-function QtyStepper({ id, value, onChange }) {
+// At quantity 1 the minus button becomes "remove", so an item can be
+// taken off the quote the same way it was counted down.
+function QtyStepper({ id, value, onChange, onRemove }) {
   const qty = Math.max(1, toNumber(value));
+  const atOne = qty <= 1;
   return (
     <div className="flex h-10 items-center rounded-lg border border-line-strong">
       <button
         type="button"
-        aria-label="Decrease quantity"
-        onClick={() => onChange(Math.max(1, qty - 1))}
-        className="flex h-full w-9 items-center justify-center text-text-muted hover:text-text-main"
+        aria-label={atOne ? "Remove item" : "Decrease quantity"}
+        title={atOne ? "Remove item" : undefined}
+        onClick={() => (atOne ? onRemove() : onChange(qty - 1))}
+        className={`flex h-full w-9 items-center justify-center ${
+          atOne ? "text-text-muted hover:text-error" : "text-text-muted hover:text-text-main"
+        }`}
       >
-        <Minus size={14} />
+        {atOne ? <Trash2 size={14} /> : <Minus size={14} />}
       </button>
       <input
         id={id}
@@ -92,7 +98,7 @@ function LineItem({ row, index, onChange, onRemove }) {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[110px_repeat(3,minmax(0,1fr))_auto] sm:items-end">
         <Field label="Qty" htmlFor={id("qty")}>
-          <QtyStepper id={id("qty")} value={line.qty} onChange={(qty) => onChange({ qty })} />
+          <QtyStepper id={id("qty")} value={line.qty} onChange={(qty) => onChange({ qty })} onRemove={onRemove} />
         </Field>
         <Field label="List price (each)" htmlFor={id("list")}>
           <NumberInput id={id("list")} value={line.listPrice} onChange={(v) => onChange({ listPrice: v })} prefix="$" />
