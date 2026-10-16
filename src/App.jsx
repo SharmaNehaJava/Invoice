@@ -99,6 +99,20 @@ export default function App() {
     return id;
   };
 
+  // Quotes, notes and events refer to customers by name, so a rename
+  // is carried through to them.
+  const updateCustomer = (id, data) => {
+    const before = customers.find((c) => c.id === id);
+    setCustomers((list) => list.map((c) => (c.id === id ? { ...c, ...data } : c)));
+    if (before && data.name && data.name !== before.name) {
+      const rename = (x) => (x.customer === before.name ? { ...x, customer: data.name } : x);
+      setQuotes((list) => list.map(rename));
+      setActivities((list) => list.map(rename));
+      setEvents((list) => list.map(rename));
+      setDraft((d) => rename(d));
+    }
+  };
+
   const ensureCustomer = (name) => {
     const trimmed = name.trim();
     if (trimmed && !customers.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
@@ -171,6 +185,8 @@ export default function App() {
         commissionPct={commissionPct}
         onCommissionChange={setCommissionPct}
         branch={branch}
+        onAddCustomer={addCustomer}
+        onUpdateCustomer={updateCustomer}
       />
     ),
     customers: (
@@ -182,6 +198,7 @@ export default function App() {
         activities={activities}
         focusCustomer={customerFocus}
         onLogActivity={logActivity}
+        onUpdateCustomer={updateCustomer}
         onToggleActivity={toggleActivity}
         onDeleteActivity={deleteActivity}
         onAddCustomer={addCustomer}

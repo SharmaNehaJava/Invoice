@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Copy, Plus, RotateCcw } from "lucide-react";
+import { Copy, Pencil, Plus, RotateCcw, UserPlus } from "lucide-react";
 import { Badge, Button, Card, CardHeader } from "../components/ui";
 import CatalogSearch from "../components/quote/CatalogSearch";
 import LineItems from "../components/quote/LineItems";
@@ -8,6 +8,8 @@ import FinanceSection from "../components/quote/FinanceSection";
 import QuoteSummary from "../components/quote/QuoteSummary";
 import OwnVsRent from "../components/quote/OwnVsRent";
 import PrintableQuote from "../components/quote/PrintableQuote";
+import CustomerForm from "../components/CustomerForm";
+import Dialog from "../components/Dialog";
 import { CUSTOM_PROGRAM_ID, FINANCE_PROGRAMS, YARD_STOCK } from "../data/catalogData";
 import {
   costSheetText,
@@ -30,9 +32,15 @@ export default function QuotePage({
   commissionPct,
   onCommissionChange,
   branch,
+  onAddCustomer,
+  onUpdateCustomer,
 }) {
   const customerRef = useRef(null);
   const [customerError, setCustomerError] = useState("");
+  const [customerDialog, setCustomerDialog] = useState(null);
+
+  const typedName = draft.customer.trim();
+  const customer = customers.find((c) => c.name.toLowerCase() === typedName.toLowerCase());
 
   const update = (patch) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -184,6 +192,31 @@ export default function QuotePage({
                   {customerError}
                 </p>
               )}
+              {customer && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-text-dim">
+                  <span className="truncate">
+                    {[customer.contact, customer.email || "no email yet"].filter(Boolean).join(" · ")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomerDialog("edit")}
+                    className="inline-flex shrink-0 items-center gap-1 text-info hover:underline"
+                  >
+                    <Pencil size={11} aria-hidden="true" />
+                    Edit
+                  </button>
+                </p>
+              )}
+              {!customer && typedName && (
+                <button
+                  type="button"
+                  onClick={() => setCustomerDialog("add")}
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-info hover:underline"
+                >
+                  <UserPlus size={12} aria-hidden="true" />
+                  New customer — add their details
+                </button>
+              )}
             </div>
           </div>
 
@@ -308,6 +341,27 @@ export default function QuotePage({
           </Button>
         </div>
       </div>
+
+      {customerDialog && (
+        <Dialog
+          title={customerDialog === "add" ? "Add customer" : `Edit ${customer?.name}`}
+          onClose={() => setCustomerDialog(null)}
+        >
+          <CustomerForm
+            initial={customerDialog === "edit" ? customer : { name: typedName }}
+            existingNames={customers.map((c) => c.name)}
+            submitLabel={customerDialog === "add" ? "Add customer" : "Save changes"}
+            onCancel={() => setCustomerDialog(null)}
+            onSubmit={(data) => {
+              if (customerDialog === "add") onAddCustomer(data);
+              else onUpdateCustomer(customer.id, data);
+              update({ customer: data.name });
+              setCustomerDialog(null);
+              notify(customerDialog === "add" ? `${data.name} added` : "Customer details saved");
+            }}
+          />
+        </Dialog>
+      )}
     </>
   );
 }

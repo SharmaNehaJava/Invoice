@@ -42,7 +42,7 @@ export default function SettingsPage({ settings, onSave, notify }) {
   };
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4">
+    <form onSubmit={submit} noValidate className="mx-auto max-w-3xl space-y-4">
       <PageHeader
         description="Who you are, who approves your quotes, and what goes on the quote PDF."
         action={

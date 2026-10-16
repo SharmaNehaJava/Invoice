@@ -1,57 +1,13 @@
 import { useState } from "react";
-import { CalendarDays, Link, Plus, Search, Star } from "lucide-react";
-import { Badge, Button, Card, CardHeader, EmptyState, Field, PageHeader, inputClass } from "../components/ui";
+import { CalendarDays, Link, Pencil, Plus, Search, Star } from "lucide-react";
+import { Badge, Button, Card, CardHeader, EmptyState, PageHeader } from "../components/ui";
 import { QuoteRow } from "./QuotesPage";
 import CallLog from "../components/CallLog";
+import CustomerForm from "../components/CustomerForm";
+import Dialog from "../components/Dialog";
 import { copyText } from "../lib/clipboard";
 
 const FEEDBACK_LINK = "https://ccequipment.ca/feedback/demo-session-current";
-
-function AddCustomerForm({ onAdd, onCancel }) {
-  const [form, setForm] = useState({ name: "", contact: "", phone: "", email: "" });
-  const [error, setError] = useState("");
-  const set = (key) => (e) => {
-    setForm((f) => ({ ...f, [key]: e.target.value }));
-    setError("");
-  };
-
-  const submit = (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) {
-      setError("Enter the company name.");
-      return;
-    }
-    onAdd({ ...form, name: form.name.trim() });
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-3 border-b border-line p-4">
-      <Field label="Company" htmlFor="new-name">
-        <input id="new-name" value={form.name} onChange={set("name")} className={inputClass} placeholder="RG Excavating" autoFocus />
-        {error && <p className="mt-1 text-xs text-error">{error}</p>}
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Contact" htmlFor="new-contact">
-          <input id="new-contact" value={form.contact} onChange={set("contact")} className={inputClass} placeholder="Jeff" />
-        </Field>
-        <Field label="Phone" htmlFor="new-phone">
-          <input id="new-phone" type="tel" value={form.phone} onChange={set("phone")} className={inputClass} placeholder="250 555 0100" />
-        </Field>
-      </div>
-      <Field label="Email" htmlFor="new-email">
-        <input id="new-email" type="email" value={form.email} onChange={set("email")} className={inputClass} placeholder="jeff@rgexcavating.ca" />
-      </Field>
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="primary" type="submit">
-          Add customer
-        </Button>
-      </div>
-    </form>
-  );
-}
 
 export default function CustomersPage({
   customers,
@@ -61,6 +17,7 @@ export default function CustomersPage({
   activities,
   focusCustomer,
   onAddCustomer,
+  onUpdateCustomer,
   onOpenQuote,
   onQuoteFor,
   onLogActivity,
@@ -72,7 +29,8 @@ export default function CustomersPage({
   const [selectedId, setSelectedId] = useState(
     () => customers.find((c) => c.name === focusCustomer)?.id ?? customers[0]?.id ?? null
   );
-  const [adding, setAdding] = useState(false);
+  // null, "add" or "edit"
+  const [dialog, setDialog] = useState(null);
 
   const visible = customers.filter((c) =>
     `${c.name} ${c.contact}`.toLowerCase().includes(term.trim().toLowerCase())
@@ -119,21 +77,10 @@ export default function CustomersPage({
                 className="w-full bg-transparent text-sm focus:outline-none"
               />
             </div>
-            <Button size="sm" aria-label="Add customer" onClick={() => setAdding(true)} className="h-9 w-9 px-0">
+            <Button size="sm" aria-label="Add customer" onClick={() => setDialog("add")} className="h-9 w-9 px-0">
               <Plus size={16} />
             </Button>
           </div>
-
-          {adding && (
-            <AddCustomerForm
-              onCancel={() => setAdding(false)}
-              onAdd={(c) => {
-                const id = onAddCustomer(c);
-                setSelectedId(id);
-                setAdding(false);
-              }}
-            />
-          )}
 
           <ul className="max-h-[60vh] overflow-y-auto p-1.5">
             {visible.map((c) => {
@@ -173,6 +120,10 @@ export default function CustomersPage({
                     {[selected.contact, selected.phone, selected.email].filter(Boolean).join(" · ") || "No contact details yet"}
                   </p>
                 </div>
+                <Button onClick={() => setDialog("edit")}>
+                  <Pencil size={14} aria-hidden="true" />
+                  Edit
+                </Button>
                 <Button variant="primary" onClick={() => onQuoteFor(selected.name)}>
                   New quote
                 </Button>
@@ -250,6 +201,27 @@ export default function CustomersPage({
           <EmptyState title="Add your first customer" body="Customers you quote are added here automatically." />
         )}
       </div>
+
+      {dialog && (
+        <Dialog title={dialog === "add" ? "Add customer" : `Edit ${selected?.name}`} onClose={() => setDialog(null)}>
+          <CustomerForm
+            initial={dialog === "edit" ? selected : undefined}
+            existingNames={customers.map((c) => c.name)}
+            submitLabel={dialog === "add" ? "Add customer" : "Save changes"}
+            onCancel={() => setDialog(null)}
+            onSubmit={(data) => {
+              if (dialog === "add") {
+                setSelectedId(onAddCustomer(data));
+                notify(`${data.name} added`);
+              } else {
+                onUpdateCustomer(selected.id, data);
+                notify("Customer details saved");
+              }
+              setDialog(null);
+            }}
+          />
+        </Dialog>
+      )}
     </div>
   );
 }
