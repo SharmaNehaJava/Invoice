@@ -119,7 +119,9 @@ export function quoteLabel(lines = []) {
 const qtyPrefix = (row) => (row.qty !== 1 ? `${row.qty} × ` : "");
 
 // Plain text that pastes cleanly into an SMS or chat.
-export function customerQuoteText({ pricing, finance, rate, repName, tradeIn, itemize }) {
+// `otherRates` lists the bulletin's other terms when the rep wants to show
+// the customer every option, e.g. [{ ratePercent, months, monthly }].
+export function customerQuoteText({ pricing, finance, rate, repName, tradeIn, itemize, otherRates = [] }) {
   const { rows } = pricing;
   const lines = ["CC Equipment quote"];
 
@@ -137,6 +139,11 @@ export function customerQuoteText({ pricing, finance, rate, repName, tradeIn, it
       `Finance: ${formatMoney(finance.monthly, 2)}/month over ${rate.months} months at ${toNumber(rate.ratePercent).toFixed(2)}% (OAC)`,
       `That's about ${formatMoney(finance.daily, 2)}/day or ${formatMoney(finance.hourly, 2)}/hr.`
     );
+    otherRates
+      .filter((r) => r.monthly > 0)
+      .forEach((r) =>
+        lines.push(`Or ${formatMoney(r.monthly, 2)}/month over ${r.months} months at ${toNumber(r.ratePercent).toFixed(2)}%`)
+      );
   }
   if (repName) lines.push(`— ${repName}, CC Equipment`);
   return lines.join("\n");

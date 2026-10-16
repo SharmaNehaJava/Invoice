@@ -59,6 +59,7 @@ export function emptyDraft() {
     downPayment: 0,
     tradeIn: 0,
     itemize: false,
+    showAllRates: false,
     // Blank means "use the rental sheet rate for the main unit".
     rentalMonthly: "",
     usageHours: 160,

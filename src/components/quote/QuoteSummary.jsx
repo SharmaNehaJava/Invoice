@@ -1,4 +1,4 @@
-import { Copy, Mail, Save, Share2 } from "lucide-react";
+import { Copy, Mail, MessageCircle, Printer, Save, Share2 } from "lucide-react";
 import { Button, Card, NumberInput } from "../ui";
 import { formatMoney, formatPercent, formatRate, toNumber } from "../../lib/pricing";
 
@@ -26,6 +26,9 @@ export default function QuoteSummary({
   onSave,
   commissionPct,
   onCommissionChange,
+  hasOtherRates,
+  whatsappHref,
+  onPrint,
 }) {
   const multiLine = draft.lines.length > 1;
 
@@ -95,6 +98,17 @@ export default function QuoteSummary({
             Itemize prices (freight shared by cost)
           </label>
         )}
+        {hasOtherRates && (
+          <label className="mb-1 flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="checkbox"
+              checked={draft.showAllRates}
+              onChange={(e) => update({ showAllRates: e.target.checked })}
+              className="size-4 accent-[var(--accent)]"
+            />
+            List every rate in the bulletin
+          </label>
+        )}
         <div className="flex gap-2">
           <Button variant="primary" size="lg" className="flex-1" onClick={onCopyCustomer}>
             <Copy size={16} aria-hidden="true" />
@@ -118,6 +132,21 @@ export default function QuoteSummary({
           >
             <Mail size={16} />
           </a>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line-strong text-sm font-medium text-text-main hover:bg-panel-hover"
+          >
+            <MessageCircle size={16} aria-hidden="true" />
+            WhatsApp
+          </a>
+          <Button onClick={onPrint}>
+            <Printer size={16} aria-hidden="true" />
+            Print / PDF
+          </Button>
         </div>
         <Button variant="ghost" size="lg" className="w-full" onClick={onSave}>
           <Save size={16} aria-hidden="true" />

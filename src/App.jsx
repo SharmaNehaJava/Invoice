@@ -163,6 +163,7 @@ export default function App() {
         notify={notify}
         commissionPct={commissionPct}
         onCommissionChange={setCommissionPct}
+        branch={branch}
       />
     ),
     customers: (
@@ -233,7 +234,7 @@ export default function App() {
     >
       {pages[route]}
 
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 lg:bottom-20 xl:bottom-6">
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-36 z-50 flex justify-center px-4 lg:bottom-20 xl:bottom-6 print:hidden">
         {toast && (
           <div
             className={`pointer-events-auto rounded-lg border px-4 py-2.5 text-sm font-medium shadow-lg ${

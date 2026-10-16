@@ -29,7 +29,7 @@ function useDismiss(ref, onDismiss) {
 
 function Sidebar({ route, onNavigate, badges }) {
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-panel lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-panel lg:flex print:hidden">
       <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
         <div className="flex size-8 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-ink">
           CC
@@ -91,7 +91,7 @@ function BottomNav({ route, onNavigate }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-panel pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-panel pb-[env(safe-area-inset-bottom)] lg:hidden print:hidden"
     >
       {primary.map(({ id, label, icon: Icon }) => (
         <button key={id} type="button" onClick={() => onNavigate(id)} className={tabClass(route === id)}>
@@ -141,7 +141,7 @@ function TopBar({ title, user, onSignIn, onSignOut, theme, onToggleTheme, branch
   useDismiss(menuRef, () => setMenuOpen(false));
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-panel/95 px-4 backdrop-blur">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-panel/95 px-4 backdrop-blur print:hidden">
       <div className="flex size-8 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-ink lg:hidden">
         CC
       </div>
@@ -246,7 +246,7 @@ export default function AppShell({ route, onNavigate, badges, topBar, children }
       <Sidebar route={route} onNavigate={onNavigate} badges={badges} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar title={current?.label ?? ""} {...topBar} />
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-36 pt-4 sm:px-6 lg:pb-24 xl:pb-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-36 pt-4 sm:px-6 lg:pb-24 xl:pb-8 print:max-w-none print:p-0">{children}</main>
       </div>
       <BottomNav route={route} onNavigate={onNavigate} />
     </div>
