@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge, Button, Card, CardHeader, EmptyState, Field, PageHeader, inputClass } from "../components/ui";
+import FollowUps from "../components/FollowUps";
 
 const EVENT_TYPES = { DEMO: "Demo", DELIVERY: "Delivery", "FOLLOW-UP": "Follow-up" };
 const EVENT_STATUSES = {
@@ -89,7 +90,16 @@ function EventForm({ initial, customers, onSave, onCancel }) {
   );
 }
 
-export default function CalendarPage({ events, customers, onAdd, onUpdate, onDelete }) {
+export default function CalendarPage({
+  events,
+  customers,
+  activities,
+  onAdd,
+  onUpdate,
+  onDelete,
+  onToggleActivity,
+  onOpenCustomer,
+}) {
   const [editing, setEditing] = useState(null);
 
   return (
@@ -105,6 +115,8 @@ export default function CalendarPage({ events, customers, onAdd, onUpdate, onDel
           )
         }
       />
+
+      <FollowUps activities={activities} onToggleDone={onToggleActivity} onOpenCustomer={onOpenCustomer} />
 
       {editing && (
         <EventForm

@@ -79,3 +79,16 @@ export const INITIAL_FEEDBACK = [
     date: "Oct 2, 2026",
   },
 ];
+
+// Call notes logged against a customer. `followUp` is a local YYYY-MM-DD date.
+export const INITIAL_ACTIVITIES = [
+  {
+    id: "A-01",
+    customer: "RG Excavating",
+    note: "Spoke to Jeff. Sent the DW30 quote; Sheldon approved it at 20%. He's comparing against renting.",
+    followUp: "2026-10-24",
+    quoteId: "Q-1001",
+    done: false,
+    createdAt: "2026-10-06T10:45:00",
+  },
+];

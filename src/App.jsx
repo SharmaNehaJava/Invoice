@@ -15,7 +15,9 @@ import {
   INITIAL_CUSTOMERS,
   INITIAL_FEEDBACK,
   INITIAL_QUOTES,
+  INITIAL_ACTIVITIES,
 } from "./data/mockRecords";
+import { daysFromToday } from "./lib/dates";
 
 const DEFAULT_USER = { name: "Jake", email: "jake@ccequipment.ca" };
 const ROUTES = NAV_ITEMS.map((n) => n.id);
@@ -67,6 +69,9 @@ export default function App() {
   const [customers, setCustomers] = usePersistentState("cc.customers", INITIAL_CUSTOMERS);
   const [events, setEvents] = usePersistentState("cc.events", INITIAL_CALENDAR_EVENTS);
   const [feedback] = usePersistentState("cc.feedback", INITIAL_FEEDBACK);
+  const [activities, setActivities] = usePersistentState("cc.activities", INITIAL_ACTIVITIES);
+  // Which customer to show when jumping to the Customers page from elsewhere.
+  const [customerFocus, setCustomerFocus] = useState(null);
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -128,7 +133,24 @@ export default function App() {
     navigate("quote");
   };
 
+  const logActivity = (customer, entry) => {
+    setActivities((list) => [
+      { id: `A-${Date.now()}`, customer, done: false, createdAt: new Date().toISOString(), ...entry },
+      ...list,
+    ]);
+    notify(entry.followUp ? "Call logged and follow-up set" : "Call logged");
+  };
+  const toggleActivity = (id) =>
+    setActivities((list) => list.map((a) => (a.id === id ? { ...a, done: !a.done } : a)));
+  const deleteActivity = (id) => setActivities((list) => list.filter((a) => a.id !== id));
+
+  const openCustomer = (name) => {
+    setCustomerFocus(name);
+    navigate("customers");
+  };
+
   const pendingReview = quotes.filter((q) => q.status === "review").length;
+  const followUpsDue = activities.filter((a) => a.followUp && !a.done && daysFromToday(a.followUp) <= 0).length;
 
   const pages = {
     quote: (
@@ -149,6 +171,11 @@ export default function App() {
         quotes={quotes}
         events={events}
         feedback={feedback}
+        activities={activities}
+        focusCustomer={customerFocus}
+        onLogActivity={logActivity}
+        onToggleActivity={toggleActivity}
+        onDeleteActivity={deleteActivity}
         onAddCustomer={addCustomer}
         onOpenQuote={openQuote}
         onQuoteFor={startQuoteFor}
@@ -179,6 +206,9 @@ export default function App() {
         onAdd={(ev) => setEvents((list) => [ev, ...list])}
         onUpdate={(ev) => setEvents((list) => list.map((e) => (e.id === ev.id ? ev : e)))}
         onDelete={(id) => setEvents((list) => list.filter((e) => e.id !== id))}
+        activities={activities}
+        onToggleActivity={toggleActivity}
+        onOpenCustomer={openCustomer}
       />
     ),
     stock: <StockPage />,
@@ -190,7 +220,7 @@ export default function App() {
     <AppShell
       route={route}
       onNavigate={navigate}
-      badges={{ quotes: pendingReview }}
+      badges={{ quotes: pendingReview, calendar: followUpsDue }}
       topBar={{
         user,
         onSignIn: () => setUser(DEFAULT_USER),

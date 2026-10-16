@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CalendarDays, Link, Plus, Search, Star } from "lucide-react";
 import { Badge, Button, Card, CardHeader, EmptyState, Field, PageHeader, inputClass } from "../components/ui";
 import { QuoteRow } from "./QuotesPage";
+import CallLog from "../components/CallLog";
 import { copyText } from "../lib/clipboard";
 
 const FEEDBACK_LINK = "https://ccequipment.ca/feedback/demo-session-current";
@@ -52,9 +53,25 @@ function AddCustomerForm({ onAdd, onCancel }) {
   );
 }
 
-export default function CustomersPage({ customers, quotes, events, feedback, onAddCustomer, onOpenQuote, onQuoteFor, notify }) {
+export default function CustomersPage({
+  customers,
+  quotes,
+  events,
+  feedback,
+  activities,
+  focusCustomer,
+  onAddCustomer,
+  onOpenQuote,
+  onQuoteFor,
+  onLogActivity,
+  onToggleActivity,
+  onDeleteActivity,
+  notify,
+}) {
   const [term, setTerm] = useState("");
-  const [selectedId, setSelectedId] = useState(customers[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState(
+    () => customers.find((c) => c.name === focusCustomer)?.id ?? customers[0]?.id ?? null
+  );
   const [adding, setAdding] = useState(false);
 
   const visible = customers.filter((c) =>
@@ -66,6 +83,7 @@ export default function CustomersPage({ customers, quotes, events, feedback, onA
   const theirQuotes = selected ? byCustomer(quotes) : [];
   const theirEvents = selected ? byCustomer(events) : [];
   const theirFeedback = selected ? byCustomer(feedback) : [];
+  const theirActivities = selected ? byCustomer(activities) : [];
 
   const copyFeedbackLink = async () => {
     const ok = await copyText(FEEDBACK_LINK);
@@ -160,6 +178,17 @@ export default function CustomersPage({ customers, quotes, events, feedback, onA
                 </Button>
               </div>
             </Card>
+
+            <CallLog
+              key={selected.id}
+              customer={selected.name}
+              activities={theirActivities}
+              quotes={theirQuotes}
+              onLog={(entry) => onLogActivity(selected.name, entry)}
+              onToggleDone={onToggleActivity}
+              onDelete={onDeleteActivity}
+              onOpenQuote={onOpenQuote}
+            />
 
             <Card>
               <CardHeader title="Quotes" subtitle={`${theirQuotes.length} saved`} />
