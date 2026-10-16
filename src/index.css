@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+@theme {
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-display: 'Space Grotesk', sans-serif;
+
+  --color-hud-bg: #0b0e09;
+  --color-hud-card: #131710;
+  --color-hud-card-hover: #191f15;
+  --color-hud-border: #222a1b;
+  --color-hud-border-focus: #3a472e;
+  --color-hud-accent: #b8c944;
+  --color-hud-accent-muted: #1c2413;
+  --color-hud-text: #e3e8dc;
+  --color-hud-muted: #7a8870;
+  --color-hud-dim: #4d5746;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-hud-bg);
+    color: var(--color-hud-text);
+    font-family: var(--font-mono);
+  }
+}
