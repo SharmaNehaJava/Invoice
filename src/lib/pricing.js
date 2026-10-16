@@ -181,3 +181,28 @@ export function costSheetText({ customer, draft, pricing, finance, rate, program
   }
   return lines.join("\n");
 }
+
+// Own vs rent, as pitched in the client's demo: a $5,500/month rental over
+// 160 hours is $34.38/hr, so a $1,815/month payment is covered after
+// ~53 hours (~7 working days). Resale value is deliberately left out.
+export function ownVsRent({ monthly, rentalMonthly, usageHours, months, upfront }) {
+  const rent = toNumber(rentalMonthly);
+  const usage = Math.max(0, toNumber(usageHours));
+  const term = Math.max(0, Math.round(toNumber(months)));
+  const rentPerHour = rent / HOURS_PER_MONTH;
+  const breakEvenHours = rentPerHour > 0 ? monthly / rentPerHour : 0;
+  const rentTotal = rent * term;
+  const ownTotal = monthly * term + toNumber(upfront);
+
+  return {
+    rentPerHour,
+    ownPerHour: usage > 0 ? monthly / usage : 0,
+    breakEvenHours,
+    breakEvenDays: breakEvenHours / HOURS_PER_DAY,
+    hoursAfterBreakEven: Math.max(0, usage - breakEvenHours),
+    rentTotal,
+    ownTotal,
+    savings: rentTotal - ownTotal,
+    term,
+  };
+}

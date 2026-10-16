@@ -6,6 +6,7 @@ import LineItems from "../components/quote/LineItems";
 import MarginControl from "../components/quote/MarginControl";
 import FinanceSection from "../components/quote/FinanceSection";
 import QuoteSummary from "../components/quote/QuoteSummary";
+import OwnVsRent from "../components/quote/OwnVsRent";
 import { YARD_STOCK } from "../data/catalogData";
 import {
   costSheetText,
@@ -200,6 +201,8 @@ export default function QuotePage({
             </div>
           </Card>
         </div>
+
+        {hasLines && <OwnVsRent draft={draft} update={update} finance={finance} rate={rate} notify={notify} />}
 
         {hasLines && (
           <Card>
