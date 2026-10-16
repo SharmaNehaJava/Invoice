@@ -8,6 +8,7 @@ import CalendarPage from "./pages/CalendarPage";
 import StockPage from "./pages/StockPage";
 import BulletinsPage from "./pages/BulletinsPage";
 import AskPage from "./pages/AskPage";
+import SettingsPage from "./pages/SettingsPage";
 import usePersistentState from "./hooks/usePersistentState";
 import { newDraft, normalizeDraft } from "./lib/quoteDraft";
 import {
@@ -19,7 +20,11 @@ import {
 } from "./data/mockRecords";
 import { daysFromToday } from "./lib/dates";
 
-const DEFAULT_USER = { name: "Jake", email: "jake@ccequipment.ca" };
+const DEFAULT_SETTINGS = {
+  rep: { name: "Jake", email: "", phone: "" },
+  manager: { name: "", email: "" },
+  company: { name: "CC Equipment", phone: "", address: "Nanaimo, BC", website: "" },
+};
 const ROUTES = NAV_ITEMS.map((n) => n.id);
 
 const routeFromHash = () => {
@@ -49,7 +54,9 @@ function nextQuoteId(quotes) {
 export default function App() {
   const [route, navigate] = useHashRoute();
   const [theme, setTheme] = usePersistentState("cc.theme", "light");
-  const [user, setUser] = usePersistentState("cc.user", DEFAULT_USER);
+  const [settings, setSettings] = usePersistentState("cc.settings", DEFAULT_SETTINGS);
+  const [signedIn, setSignedIn] = usePersistentState("cc.signedIn", true);
+  const user = signedIn ? settings.rep : null;
   const [branch, setBranch] = usePersistentState("cc.branch", "05 · Nanaimo, BC");
   // Left blank until the rep enters their own commission rate.
   const [commissionPct, setCommissionPct] = usePersistentState("cc.commissionPct", "");
@@ -110,7 +117,7 @@ export default function App() {
       machine,
       sellPrice,
       status,
-      note: status === "review" ? "Cost sheet sent for Sheldon's sign-off." : "",
+      note: status === "review" ? "Cost sheet sent to the sales manager for approval." : "",
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       draft: { ...currentDraft, quoteId: id },
@@ -158,7 +165,7 @@ export default function App() {
         draft={draft}
         setDraft={setDraft}
         customers={customers}
-        repName={user?.name}
+        repName={settings.rep.name}
         onSaveQuote={saveQuote}
         notify={notify}
         commissionPct={commissionPct}
@@ -191,7 +198,7 @@ export default function App() {
           setQuotes((list) =>
             list.map((q) =>
               q.id === id
-                ? { ...q, status, note: status === "approved" ? "Approved by Sheldon." : q.note }
+                ? { ...q, status, note: status === "approved" ? "Approved by the sales manager." : q.note }
                 : q
             )
           )
@@ -215,6 +222,7 @@ export default function App() {
     stock: <StockPage />,
     bulletins: <BulletinsPage />,
     ask: <AskPage />,
+    settings: <SettingsPage settings={settings} onSave={setSettings} notify={notify} />,
   };
 
   return (
@@ -224,8 +232,8 @@ export default function App() {
       badges={{ quotes: pendingReview, calendar: followUpsDue }}
       topBar={{
         user,
-        onSignIn: () => setUser(DEFAULT_USER),
-        onSignOut: () => setUser(null),
+        onSignIn: () => setSignedIn(true),
+        onSignOut: () => setSignedIn(false),
         theme,
         onToggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
         branch,

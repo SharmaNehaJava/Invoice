@@ -22,7 +22,7 @@ export default function QuoteSummary({
   mailtoHref,
   onCopyCustomer,
   onShareCustomer,
-  onSendToSheldon,
+  onSendForApproval,
   onSave,
   commissionPct,
   onCommissionChange,
@@ -121,8 +121,8 @@ export default function QuoteSummary({
           )}
         </div>
         <div className="flex gap-2">
-          <Button size="lg" className="flex-1" onClick={onSendToSheldon}>
-            Cost sheet to Sheldon
+          <Button size="lg" className="flex-1" onClick={onSendForApproval}>
+            Cost sheet to sales manager
           </Button>
           <a
             href={mailtoHref}

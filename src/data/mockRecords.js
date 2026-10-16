@@ -3,7 +3,7 @@
 
 export const QUOTE_STATUSES = {
   draft: { label: "Draft", tone: "neutral" },
-  review: { label: "With Sheldon", tone: "warning" },
+  review: { label: "Awaiting approval", tone: "warning" },
   approved: { label: "Approved", tone: "success" },
   sent: { label: "Sent to customer", tone: "info" },
 };
@@ -24,7 +24,7 @@ export const INITIAL_QUOTES = [
     machine: "DW30 — ROPS, standard tires",
     sellPrice: 107415,
     status: "approved",
-    note: "Approved by Sheldon at 20% margin. Standard freight applied.",
+    note: "Approved by the sales manager at 20% margin. Standard freight applied.",
     createdAt: "2026-10-06T10:30:00",
     draft: null,
   },
@@ -34,7 +34,7 @@ export const INITIAL_QUOTES = [
     machine: "Avant multi-function + weed brush",
     sellPrice: 48900,
     status: "review",
-    note: "Awaiting Sheldon review on custom PDI rate.",
+    note: "Awaiting sales manager review on custom PDI rate.",
     createdAt: "2026-10-05T11:46:00",
     draft: null,
   },
@@ -85,7 +85,7 @@ export const INITIAL_ACTIVITIES = [
   {
     id: "A-01",
     customer: "RG Excavating",
-    note: "Spoke to Jeff. Sent the DW30 quote; Sheldon approved it at 20%. He's comparing against renting.",
+    note: "Spoke to Jeff. Sent the DW30 quote; the sales manager approved it at 20%. He's comparing against renting.",
     followUp: "2026-10-24",
     quoteId: "Q-1001",
     done: false,

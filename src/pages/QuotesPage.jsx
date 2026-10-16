@@ -78,7 +78,7 @@ export default function QuotesPage({ quotes, onOpen, onStatusChange, onDelete, o
   return (
     <div>
       <PageHeader
-        description="Every saved quote. Mark Sheldon's approval here once he's signed off."
+        description="Every saved quote. Mark it approved here once the sales manager signs off."
         action={
           <Button variant="primary" onClick={onNewQuote}>
             New quote
@@ -106,7 +106,7 @@ export default function QuotesPage({ quotes, onOpen, onStatusChange, onDelete, o
           </ul>
         </Card>
       ) : (
-        <EmptyState title="No quotes here" body="Quotes you save or send to Sheldon show up in this list." />
+        <EmptyState title="No quotes here" body="Quotes you save or send for approval show up in this list." />
       )}
     </div>
   );

@@ -115,11 +115,11 @@ export default function QuotePage({
     if (requireQuote()) shareText(customerQuoteText({ ...textArgs, repName }), "CC Equipment quote");
   };
 
-  const handleSendToSheldon = async () => {
+  const handleSendForApproval = async () => {
     if (!requireQuote() || !requireCustomer()) return;
     const ok = await copyText(costSheetText(textArgs));
     save("review");
-    notify(ok ? "Cost sheet copied and saved as With Sheldon" : "Saved as With Sheldon. Copy failed — try again.", ok ? "success" : "error");
+    notify(ok ? "Cost sheet copied and saved as awaiting approval" : "Saved as awaiting approval. Copy failed — try again.", ok ? "success" : "error");
   };
 
   const handleSave = () => {
@@ -283,7 +283,7 @@ export default function QuotePage({
             mailtoHref={mailtoHref}
             onCopyCustomer={handleCopyCustomer}
             onShareCustomer={handleShareCustomer}
-            onSendToSheldon={handleSendToSheldon}
+            onSendForApproval={handleSendForApproval}
             onSave={handleSave}
             hasOtherRates={hasOtherRates}
             whatsappHref={whatsappHref}

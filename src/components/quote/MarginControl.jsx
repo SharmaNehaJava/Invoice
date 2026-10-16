@@ -85,7 +85,7 @@ export default function MarginControl({ value, onChange, totalCost, sellPrice })
           <Plus size={16} />
         </Button>
         <span className={`text-xs ${below ? "text-warning" : above ? "text-info" : "text-text-dim"}`}>
-          {below ? "Below the 17–20% target" : above ? "Above target — Sheldon will like it" : "Target 17–20%"}
+          {below ? "Below the 17–20% target" : above ? "Above target" : "Target 17–20%"}
         </span>
       </div>
       {totalCost > 0 && <TargetPrice totalCost={totalCost} sellPrice={sellPrice} onMargin={onChange} />}

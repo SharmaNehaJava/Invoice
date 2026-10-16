@@ -5,6 +5,7 @@ import {
   Percent,
   Sparkles,
   Truck,
+  Settings,
   Users,
 } from "lucide-react";
 
@@ -16,4 +17,5 @@ export const NAV_ITEMS = [
   { id: "stock", label: "Yard stock", icon: Truck },
   { id: "bulletins", label: "Bulletins", icon: Percent },
   { id: "ask", label: "Ask AI", icon: Sparkles },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
