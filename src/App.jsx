@@ -245,6 +245,7 @@ export default function App() {
         events={events}
         feedback={feedback}
         activities={activities}
+        emails={emails}
         focusCustomer={customerFocus}
         onLogActivity={logActivity}
         onUpdateCustomer={updateCustomer}
@@ -259,6 +260,7 @@ export default function App() {
     quotes: (
       <QuotesPage
         quotes={quotes}
+        emails={emails}
         onOpen={openQuote}
         onStatusChange={(id, status) =>
           setQuotes((list) =>
@@ -281,6 +283,7 @@ export default function App() {
         onUpdate={(ev) => setEvents((list) => list.map((e) => (e.id === ev.id ? ev : e)))}
         onDelete={(id) => setEvents((list) => list.filter((e) => e.id !== id))}
         activities={activities}
+        emails={emails}
         onToggleActivity={toggleActivity}
         onOpenCustomer={openCustomer}
       />

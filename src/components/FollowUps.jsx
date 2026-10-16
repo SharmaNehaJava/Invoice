@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, MailWarning } from "lucide-react";
 import { Badge, Button, Card, CardHeader, Segmented } from "./ui";
-import { daysFromToday, describeDue } from "../lib/dates";
+import { daysFromToday, describeDue, formatTimestamp, toISODate } from "../lib/dates";
+import { EmailStatusBadge } from "./EmailHistory";
+
+const UNOPENED_AFTER_DAYS = 2;
 
 const RANGES = [
   { value: 0, label: "Today" },
@@ -9,12 +12,20 @@ const RANGES = [
 ];
 
 // Open follow-ups from the call log. Overdue ones always show.
-export default function FollowUps({ activities, onToggleDone, onOpenCustomer }) {
+export default function FollowUps({ activities, emails = [], onToggleDone, onOpenCustomer }) {
   const [range, setRange] = useState(14);
 
   const due = activities
     .filter((a) => a.followUp && !a.done && daysFromToday(a.followUp) <= range)
     .sort((a, b) => a.followUp.localeCompare(b.followUp));
+
+  // Quotes emailed a while ago that the customer still hasn't opened.
+  const unopened = emails.filter(
+    (e) =>
+      e.kind === "customer" &&
+      ["sent", "delivered"].includes(e.status) &&
+      daysFromToday(toISODate(new Date(e.sentAt))) <= -UNOPENED_AFTER_DAYS
+  );
 
   return (
     <Card className="mb-4">
@@ -23,6 +34,24 @@ export default function FollowUps({ activities, onToggleDone, onOpenCustomer }) 
         subtitle="From the call log on each customer"
         action={<Segmented options={RANGES} value={range} onChange={setRange} />}
       />
+      {unopened.length > 0 && (
+        <ul className="divide-y divide-line border-b border-line bg-warning-subtle/40">
+          {unopened.map((e) => (
+            <li key={e.id} className="flex items-start gap-3 px-4 py-3">
+              <MailWarning size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <button type="button" onClick={() => onOpenCustomer(e.customer)} className="text-sm font-medium text-text-main hover:underline">
+                  {e.customer}
+                </button>
+                <p className="text-sm text-text-muted">
+                  Quote {e.quoteId} emailed {formatTimestamp(e.sentAt)} hasn't been opened — give them a call
+                </p>
+              </div>
+              <EmailStatusBadge email={e} />
+            </li>
+          ))}
+        </ul>
+      )}
       {due.length ? (
         <ul className="divide-y divide-line">
           {due.map((a) => {

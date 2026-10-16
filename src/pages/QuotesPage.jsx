@@ -4,9 +4,11 @@ import { Badge, Button, Card, EmptyState, PageHeader, Segmented } from "../compo
 import { QUOTE_STATUSES } from "../data/mockRecords";
 import { formatMoney } from "../lib/pricing";
 import { formatTimestamp } from "../lib/dates";
+import { EmailStatusBadge } from "../components/EmailHistory";
+import { latestCustomerEmails } from "../lib/emailApi";
 
 
-export function QuoteRow({ quote, onOpen, onStatusChange, onDelete }) {
+export function QuoteRow({ quote, email, onOpen, onStatusChange, onDelete }) {
   const status = QUOTE_STATUSES[quote.status] ?? QUOTE_STATUSES.draft;
   return (
     <li className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
@@ -14,6 +16,7 @@ export function QuoteRow({ quote, onOpen, onStatusChange, onDelete }) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold text-text-main">{quote.customer}</span>
           <Badge tone={status.tone}>{status.label}</Badge>
+          {email && <EmailStatusBadge email={email} />}
           <span className="font-data text-xs text-text-dim">{quote.id}</span>
         </div>
         <p className="truncate text-sm text-text-muted">{quote.machine}</p>
@@ -63,7 +66,8 @@ export function QuoteRow({ quote, onOpen, onStatusChange, onDelete }) {
   );
 }
 
-export default function QuotesPage({ quotes, onOpen, onStatusChange, onDelete, onNewQuote }) {
+export default function QuotesPage({ quotes, emails, onOpen, onStatusChange, onDelete, onNewQuote }) {
+  const emailByQuote = latestCustomerEmails(emails);
   const [filter, setFilter] = useState("all");
 
   const counts = Object.fromEntries(
@@ -96,6 +100,7 @@ export default function QuotesPage({ quotes, onOpen, onStatusChange, onDelete, o
               <QuoteRow
                 key={q.id}
                 quote={q}
+                email={emailByQuote[q.id]}
                 onOpen={onOpen}
                 onStatusChange={onStatusChange}
                 onDelete={(id) => {

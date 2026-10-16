@@ -2,6 +2,8 @@ import { useState } from "react";
 import { CalendarDays, Link, Pencil, Plus, Search, Star } from "lucide-react";
 import { Badge, Button, Card, CardHeader, EmptyState, PageHeader } from "../components/ui";
 import { QuoteRow } from "./QuotesPage";
+import EmailHistory from "../components/EmailHistory";
+import { latestCustomerEmails } from "../lib/emailApi";
 import CallLog from "../components/CallLog";
 import CustomerForm from "../components/CustomerForm";
 import Dialog from "../components/Dialog";
@@ -15,6 +17,7 @@ export default function CustomersPage({
   events,
   feedback,
   activities,
+  emails = [],
   focusCustomer,
   onAddCustomer,
   onUpdateCustomer,
@@ -42,6 +45,8 @@ export default function CustomersPage({
   const theirEvents = selected ? byCustomer(events) : [];
   const theirFeedback = selected ? byCustomer(feedback) : [];
   const theirActivities = selected ? byCustomer(activities) : [];
+  const theirEmails = selected ? byCustomer(emails) : [];
+  const emailByQuote = latestCustomerEmails(theirEmails);
 
   const copyFeedbackLink = async () => {
     const ok = await copyText(FEEDBACK_LINK);
@@ -141,12 +146,14 @@ export default function CustomersPage({
               onOpenQuote={onOpenQuote}
             />
 
+            <EmailHistory emails={theirEmails} />
+
             <Card>
               <CardHeader title="Quotes" subtitle={`${theirQuotes.length} saved`} />
               {theirQuotes.length ? (
                 <ul className="divide-y divide-line">
                   {theirQuotes.map((q) => (
-                    <QuoteRow key={q.id} quote={q} onOpen={onOpenQuote} />
+                    <QuoteRow key={q.id} quote={q} email={emailByQuote[q.id]} onOpen={onOpenQuote} />
                   ))}
                 </ul>
               ) : (

@@ -107,9 +107,10 @@ const BADGE_TONES = {
   info: "bg-info-subtle text-info border-info/30",
 };
 
-export function Badge({ tone = "neutral", className, children }) {
+export function Badge({ tone = "neutral", className, children, ...props }) {
   return (
     <span
+      {...props}
       className={cx(
         "inline-flex items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-medium",
         BADGE_TONES[tone],

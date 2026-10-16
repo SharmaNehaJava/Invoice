@@ -56,3 +56,14 @@ ${pre}
 <p style="margin:24px 0 0;font-size:13px;color:#6b7280">${signature}</p>
 </div></div></body></html>`;
 }
+
+// Latest email sent to the customer for each quote, for the tracking badge.
+export function latestCustomerEmails(emails = []) {
+  const byQuote = {};
+  emails
+    .filter((e) => e.kind === "customer")
+    .forEach((e) => {
+      if (!byQuote[e.quoteId] || e.sentAt > byQuote[e.quoteId].sentAt) byQuote[e.quoteId] = e;
+    });
+  return byQuote;
+}

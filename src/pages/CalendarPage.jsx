@@ -94,6 +94,7 @@ export default function CalendarPage({
   events,
   customers,
   activities,
+  emails,
   onAdd,
   onUpdate,
   onDelete,
@@ -116,7 +117,7 @@ export default function CalendarPage({
         }
       />
 
-      <FollowUps activities={activities} onToggleDone={onToggleActivity} onOpenCustomer={onOpenCustomer} />
+      <FollowUps activities={activities} emails={emails} onToggleDone={onToggleActivity} onOpenCustomer={onOpenCustomer} />
 
       {editing && (
         <EventForm
