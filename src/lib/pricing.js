@@ -1,6 +1,6 @@
-// Pricing rules confirmed against the client's demo video:
-//   DW307 @ $107,415, less 24%, PDI $813.60, freight $2,500, 20% margin,
-//   0.99% / 60 months  →  $106,186 sell, $1,815/mo, $90.73/day, $11.34/hr.
+// Pricing rules, as the dealership quotes them:
+//   dealer cost = list × (1 − discount), total cost = dealer cost + PDI + freight,
+//   sell = total cost ÷ (1 − margin), and finance cost per working day / hour.
 
 export const WORKING_DAYS_PER_MONTH = 20;
 export const HOURS_PER_DAY = 8;
@@ -189,9 +189,9 @@ export function costSheetText({ customer, draft, pricing, finance, rate, program
   return lines.join("\n");
 }
 
-// Own vs rent, as pitched in the client's demo: a $5,500/month rental over
-// 160 hours is $34.38/hr, so a $1,815/month payment is covered after
-// ~53 hours (~7 working days). Resale value is deliberately left out.
+// Own vs rent: the rental rate is spread over a 160-hour month, and the
+// break-even is how many of those hours cover one finance payment.
+// Resale value is deliberately left out.
 export function ownVsRent({ monthly, rentalMonthly, usageHours, months, upfront }) {
   const rent = toNumber(rentalMonthly);
   const usage = Math.max(0, toNumber(usageHours));

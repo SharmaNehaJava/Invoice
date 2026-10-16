@@ -68,7 +68,7 @@ function Sidebar({ route, onNavigate, badges }) {
       </nav>
 
       <p className="border-t border-line p-4 text-xs leading-relaxed text-text-dim">
-        Nothing here contacts a customer. Quotes are copied out for you to send yourself.
+        Prices, discounts and rates in this demo are sample data, not a real price book.
       </p>
     </aside>
   );

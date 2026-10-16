@@ -193,6 +193,7 @@ export default function QuotePage({
                 <span className="flex flex-wrap items-center gap-2">
                   Items
                   {hasLines && <Badge>{draft.lines.length}</Badge>}
+                <Badge tone="warning">Sample prices</Badge>
                   {draft.quoteId && <Badge tone="info">Editing {draft.quoteId}</Badge>}
                 </span>
               }

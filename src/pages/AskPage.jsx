@@ -22,7 +22,7 @@ function answerFor(question) {
     return WATCH_LIST.find((w) => w.title === "Consignment").text;
   }
   if (q.includes("pdi")) {
-    return "PDI is billed at $170/hr. Reversible plates and dumpers default to 1–2 hours ($170–$340). Boxed units: $0.";
+    return "Sample policy: PDI is billed hourly. Plates and dumpers usually take 1–2 hours. Boxed units have no PDI.";
   }
   return "I can answer questions about finance bulletins, consignment rules and PDI for now.";
 }
